@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { adminAuth } from '../../api/adminApi'
 import '../../styles/celebration.css'
@@ -10,13 +10,34 @@ const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 const imageSource = url => url.startsWith('http') ? url : `${base}${url}`
 async function request(path, body, method) {
   const response = await fetch(`${base}/api/admin/${path}`, { method: method || (body ? 'POST' : 'GET'), headers: { Authorization: `Bearer ${adminAuth.getToken()}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.message || 'Không tải được dữ liệu')
+  const payload = await response.json().catch(() => null)
+  if (response.status === 401) {
+    adminAuth.clear()
+    window.dispatchEvent(new Event('gift-admin-unauthorized'))
+    throw Object.assign(new Error(payload?.message || 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'), { status: 401 })
+  }
+  if (!response.ok) throw new Error(payload?.message || 'Không tải được dữ liệu')
   return payload.data
 }
 async function fetchAll() {
-  const [overview, feedback, greetings, images] = await Promise.all([request('overview'), request('feedback'), request('greetings'), request('images')])
-  return { overview, feedback, greetings, images }
+  const endpoints = [
+    ['overview', 'Tổng quan', { feedbackCount: null, visitCount: null, visitors: null, visits: [] }],
+    ['feedback', 'Phản hồi', { items: [], total: null }],
+    ['greetings', 'Lời chúc', { items: [] }],
+    ['images', 'Thư viện ảnh', { items: [], total: null, totalBytes: 0 }],
+  ]
+  const results = await Promise.allSettled(endpoints.map(([key]) => request(key)))
+  if (results.some(result => result.status === 'rejected' && result.reason?.status === 401)) throw results.find(result => result.status === 'rejected' && result.reason?.status === 401).reason
+  const data = { errors: {} }
+  results.forEach((result, index) => {
+    const [key, label, fallback] = endpoints[index]
+    if (result.status === 'fulfilled') data[key] = result.value
+    else {
+      data[key] = fallback
+      data.errors[key] = `${label}: ${result.reason?.message || 'không tải được dữ liệu'}`
+    }
+  })
+  return data
 }
 const tabs = [
   { id: 'overview', label: 'Tổng quan', description: 'Những con số nhỏ, những kết nối yêu thương.', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
@@ -41,17 +62,21 @@ export default function FamilyInbox() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(null)
   const [form, setForm] = useState(blank)
+  const setLoadedData = useCallback(result => {
+    setData(result)
+    setError(Object.values(result.errors).join(' · '))
+  }, [])
   async function load() {
     setLoading(true); setError('')
-    try { setData(await fetchAll()) } catch (err) { setError(err.message) } finally { setLoading(false) }
+    try { setLoadedData(await fetchAll()) } catch (err) { setError(err.message) } finally { setLoading(false) }
   }
   useEffect(() => {
     let cancelled = false
-    const refresh = () => fetchAll().then(result => { if (!cancelled) { setData(result); setError('') } }).catch(err => { if (!cancelled) setError(err.message) }).finally(() => { if (!cancelled) setLoading(false) })
+    const refresh = () => fetchAll().then(result => { if (!cancelled) setLoadedData(result) }).catch(err => { if (!cancelled) setError(err.message) }).finally(() => { if (!cancelled) setLoading(false) })
     refresh()
     const timer = setInterval(refresh, 20000)
     return () => { cancelled = true; clearInterval(timer) }
-  }, [])
+  }, [setLoadedData])
   async function save(event) {
     event.preventDefault(); setSaving(true); setMessage(''); setError('')
     try {
@@ -83,7 +108,7 @@ export default function FamilyInbox() {
       <h3>Vị trí người mở web</h3><p className="family-admin-hint">Vị trí gần đúng theo IP, không phải GPS. Truy cập trên máy này sẽ hiển thị mạng nội bộ. Mỗi lần mở hoặc chuyển trang được tính một lượt.</p>
       <div className="family-visits">{data?.overview.visits.map(visit => <article key={visit.id}><strong>{visit.location.label}</strong><time>{new Date(visit.createdAt).toLocaleString('vi-VN')}</time><small>{pageLabel(visit.page)}</small></article>)}</div>
     </section>
-    <section id="responses" className="family-admin-panel" hidden={active.id !== 'responses'}><h2>Phản hồi từ người thân</h2><p className="family-admin-hint">Vị trí được ước tính gần đúng theo IP; phản hồi gửi trước đây có thể chưa có tên người gửi hoặc vị trí.</p>{data?.feedback.items.length === 0 && <p>Chưa có phản hồi.</p>}{data?.feedback.items.map(item => <article className="family-inbox-item" key={item.id}><div className="family-response-header"><h3>{item.recipient}</h3><button className="btn-dashed family-delete-button" type="button" disabled={deleting !== null} onClick={() => deleteFeedback(item)} aria-label={`Xóa phản hồi của ${item.recipient}`}>{deleting === item.id ? 'Đang xóa…' : 'Xóa phản hồi'}</button></div><div className="family-response-meta"><span><strong>Người gửi:</strong> {item.sender || 'Chưa ghi tên'}</span><span><strong>Vị trí gần đúng:</strong> {item.location?.label || 'Chưa ghi nhận'}</span><span><strong>Gửi từ thư:</strong> {item.recipient}</span></div><time>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(url => <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh từ ${item.recipient}`} loading="lazy" /></a>)}</div></article>)}</section>
+    <section id="responses" className="family-admin-panel" hidden={active.id !== 'responses'}><h2>Phản hồi từ người thân</h2><p className="family-admin-hint">Vị trí được ước tính gần đúng theo IP; phản hồi gửi trước đây có thể chưa có tên người gửi hoặc vị trí.</p>{data?.errors.feedback && <p role="status">{data.errors.feedback}</p>}{data?.feedback.total === 0 && <p>Chưa có phản hồi.</p>}{data?.feedback.items.map(item => <article className="family-inbox-item" key={item.id}><div className="family-response-header"><h3>{item.recipient}</h3><button className="btn-dashed family-delete-button" type="button" disabled={deleting !== null} onClick={() => deleteFeedback(item)} aria-label={`Xóa phản hồi của ${item.recipient}`}>{deleting === item.id ? 'Đang xóa…' : 'Xóa phản hồi'}</button></div><div className="family-response-meta"><span><strong>Người gửi:</strong> {item.sender || 'Chưa ghi tên'}</span><span><strong>Vị trí gần đúng:</strong> {item.location?.label || 'Chưa ghi nhận'}</span><span><strong>Gửi từ thư:</strong> {item.recipient}</span></div><time>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(url => <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh từ ${item.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a>)}</div></article>)}</section>
     <section id="greetings" className="family-admin-panel" hidden={active.id !== 'greetings'}><h2>{form.id ? 'Cập nhật lời chúc' : 'Thêm lời chúc theo từ khóa'}</h2><form className="family-form" onSubmit={save}>
       <label htmlFor="rule-keywords">Từ khóa nhận biết (cách nhau bằng dấu phẩy)</label><input id="rule-keywords" value={form.keywords} onChange={event => field('keywords', event.target.value)} placeholder="Ví dụ: dì Hoa, hoa" required />
       <label htmlFor="rule-recipient">Tên hiển thị</label><input id="rule-recipient" value={form.recipient} onChange={event => field('recipient', event.target.value)} placeholder="Ví dụ: Dì Hoa" />
@@ -93,9 +118,9 @@ export default function FamilyInbox() {
       <button className="btn-ink" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu lời chúc'}</button>{form.id && <button type="button" className="btn-dashed" onClick={() => setForm(blank)}>Thêm lời chúc khác</button>}
     </form><div className="family-rules">{data?.greetings.items.map(rule => <article className="family-inbox-item" key={rule.id}><h3>{rule.recipient || rule.keywords.join(', ')}</h3><p>Từ khóa: {rule.keywords.join(', ')}</p><button className="btn-dashed" onClick={() => { setForm({ ...rule, keywords: rule.keywords.join(', ') }); document.getElementById('rule-keywords')?.focus() }}>Chỉnh sửa</button></article>)}</div></section>
     <section id="images" className="family-admin-panel" hidden={active.id !== 'images'}>
-      <div className="family-gallery-summary"><h2>Ảnh hiện có</h2><span>{data?.images.total ?? 0} ảnh · {bytes(data?.images.totalBytes || 0)}</span></div>
-      {data?.images.total === 0 && <div className="family-empty"><h3>Chưa có ảnh nào</h3><p>Ảnh người thân tải lên trong phản hồi sẽ được tập hợp tại đây.</p></div>}
-      <div className="family-gallery">{data?.images.items.map(image => <article key={image.id}><a href={imageSource(image.url)} target="_blank" rel="noreferrer" aria-label={`Xem ảnh gốc từ ${image.recipient}`}><img src={imageSource(image.url)} alt={`Ảnh từ ${image.recipient}`} loading="lazy" /></a><div><h3>{image.recipient}</h3><p>{new Date(image.createdAt).toLocaleDateString('vi-VN')} · {bytes(image.size)}</p><a className="link-dashed" href={imageSource(image.url)} target="_blank" rel="noreferrer">Xem ảnh gốc ↗</a></div></article>)}</div>
+      <div className="family-gallery-summary"><h2>Ảnh hiện có</h2><span>{data?.images.total ?? '—'} ảnh · {bytes(data?.images.totalBytes || 0)}</span></div>
+      {data?.images.total === 0 && <div className="family-empty"><h3>Chưa có ảnh nào</h3><p>Ảnh người thân tải lên trong phản hồi sẽ được tập hợp tại đây.</p></div>}{data?.errors.images && <p role="status">{data.errors.images}</p>}
+      <div className="family-gallery">{data?.images.items.map(image => <article key={image.id}><a href={imageSource(image.url)} target="_blank" rel="noreferrer" aria-label={`Xem ảnh gốc từ ${image.recipient}`}><img src={imageSource(image.url)} alt={`Ảnh từ ${image.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a><div><h3>{image.recipient}</h3><p>{new Date(image.createdAt).toLocaleDateString('vi-VN')} · {bytes(image.size)}</p><a className="link-dashed" href={imageSource(image.url)} target="_blank" rel="noreferrer">Xem ảnh gốc ↗</a></div></article>)}</div>
     </section>
     </main></div>
 }
