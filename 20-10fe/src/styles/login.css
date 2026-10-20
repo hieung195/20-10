@@ -76,11 +76,6 @@
   flex: 0 0 auto;
 }
 
-.admin-login__remember small {
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .admin-login__card .btn-primary {
   margin-top: 18px;
   min-height: 48px;

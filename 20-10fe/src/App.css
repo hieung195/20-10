@@ -59,6 +59,27 @@
   margin-top: 18px;
 }
 
+/* Plain, small admin shortcut using the site's body font. */
+.admin-switch {
+  position: fixed;
+  top: 14px;
+  right: 20px;
+  z-index: 950;
+  padding: 4px;
+  color: #775443;
+  font: 16px/1 var(--font-body);
+  text-decoration: none;
+}
+
+.admin-switch:hover {
+  color: var(--clay);
+}
+
+.admin-switch:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 /* ── Nút nhạc: pill mực, đĩa quay khi phát ── */
 .music-player {
   position: fixed;

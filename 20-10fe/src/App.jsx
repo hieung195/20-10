@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedAdminRoute from './components/ProtectedAdminRoute'
+import AdminShortcut from './components/AdminShortcut'
 import VisitTracker from './components/VisitTracker'
 import MusicPlayer from './components/MusicPlayer'
 import './App.css'
@@ -31,7 +32,7 @@ function PublicAccessGate({ children }) {
 }
 
 export default function App() {
-  return <PublicAccessGate><><VisitTracker /><MusicPlayer /><Suspense fallback={<div className="app-route-loading" role="status">Đang tải...</div>}><Routes>
+  return <PublicAccessGate><><VisitTracker /><AdminShortcut /><MusicPlayer /><Suspense fallback={<div className="app-route-loading" role="status">Đang tải...</div>}><Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/celebrate/:name" element={<CelebrationPage />} />
     <Route path="/login" element={<LoginPage />} />

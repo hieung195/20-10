@@ -51,7 +51,7 @@ function LoginPage() {
         </label>
         <label className="admin-login__remember">
           <input type="checkbox" checked={rememberDevice} onChange={(event) => setRememberDevice(event.target.checked)} />
-          <span>Nhớ thiết bị này <small>· giữ đăng nhập trong 30 ngày</small></span>
+          <span>Nhớ thiết bị này</span>
         </label>
         {error && <p className="admin-alert error">{error}</p>}
         <button type="submit" className="btn-primary" disabled={loading}>
