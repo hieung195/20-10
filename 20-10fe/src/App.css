@@ -59,28 +59,6 @@
   margin-top: 18px;
 }
 
-/* ── Lối tắt đăng nhập quản trị trên các trang công khai ── */
-.admin-switch {
-  position: fixed;
-  top: 14px;
-  right: 20px;
-  z-index: 950;
-  padding: 4px;
-  font: 16px/1 var(--font-hand);
-  color: #775443;
-  text-decoration: none;
-  transition: color .15s;
-}
-
-.admin-switch:hover {
-  color: var(--clay);
-}
-
-.admin-switch:focus-visible {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 /* ── Nút nhạc: pill mực, đĩa quay khi phát ── */
 .music-player {
   position: fixed;
