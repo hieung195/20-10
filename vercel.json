@@ -4,7 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "20-10fe/dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/[...]" },
+    { "source": "/api/:path*", "destination": "/api/bridge?path=:path*" },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
