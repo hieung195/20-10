@@ -1,33 +1,83 @@
-# Thư nhà — bản gia đình, lưu JSON
+# Thư Nhà
 
-Bản gia đình không dùng MySQL. Khi chạy local, dữ liệu được lưu thành JSON trên đĩa. Khi deploy serverless, có thể lưu JSON trong Upstash Redis và gửi ảnh trực tiếp lên Cloudinary.
+Website gửi lời chúc và lời nhắn cho gia đình. Nội dung thư mặc định được đọc từ JSON; khi chạy trên Vercel, dữ liệu phát sinh lưu ở Upstash Redis và ảnh đính kèm lưu ở Cloudinary.
 
-## Dữ liệu
-- `database/greetings.json`: toàn bộ nội dung thư và bản đồ vai vế. Được dùng chung ở frontend và backend.
-- `database/feedback.json`: lời nhắn local. Nếu cấu hình Upstash, các mảng dữ liệu JSON được lưu trong Redis thay cho file local.
-- `database/admins.json`: tài khoản quản trị local (mật khẩu được băm). Với Upstash, tài khoản cũng được lưu trong Redis.
-- `shared/familyGreetings.mjs`: chuẩn hóa tên, nhận diện mẹ, chọn và ghép nội dung từ JSON.
+## Chạy trên máy cá nhân
 
-Phản hồi và ảnh được công khai trên từng trang thư; ai mở cùng trang cũng xem được. Đăng nhập qua `/login` (admin / 1 theo cấu hình gia đình hiện tại), sau đó xem tổng quan tại `/admin`. Không có nút quản trị trên trang công khai. Dự án chỉ giữ chức năng gia đình; mã lớp học, Face ID và SQL đã được loại bỏ.
+Cần cài Node.js và npm. Từ thư mục gốc của dự án, chạy:
 
-Ghi file theo hàng đợi và thay file nguyên khối để tránh mất phản hồi khi nhiều người gửi trong cùng một tiến trình. Không sửa file dữ liệu bằng tay khi đang nhận phản hồi. Nếu file bị hỏng, máy chủ báo lỗi thay vì ghi đè mất dữ liệu.
+```bash
+npm run setup
+```
 
-## Chạy và deploy
-1. Cài thư viện: `npm ci` trong `20-10be` và `20-10fe`.
-2. Tạo `20-10be/.env` theo `.env.example`, đặt mật khẩu admin và JWT secret riêng.
-3. Development: `npm start` trong `20-10be`, `npm run dev` trong `20-10fe`.
-4. Production: build frontend (`npm run build` trong `20-10fe`), đặt `NODE_ENV=production`, chạy backend. Đưa cả `shared`, `database`, `20-10be`, `20-10fe/dist` lên máy chủ.
-5. Khi deploy Vercel, thêm `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, cùng `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `JWT_SECRET` trong Environment Variables. Upstash REST URL và token lấy từ mục REST của database. API Secret chỉ đặt ở cấu hình bí mật phía máy chủ; không dùng tiền tố `VITE_`.
+Lệnh này cài lại thư viện cho backend và frontend từ các lockfile. Nếu chưa có file môi trường, tạo chúng từ mẫu:
 
-Cloudinary nhận ảnh trực tiếp từ trình duyệt bằng chữ ký tạo ở backend. Việc này tránh gửi tệp qua Vercel Function, vốn giới hạn request/response ở 4.5 MB. Giới hạn và quota lưu trữ của Cloudinary/Upstash vẫn áp dụng.
+```bash
+cp 20-10be/.env.example 20-10be/.env
+cp 20-10fe/.env.example 20-10fe/.env
+```
 
-## Kiểm tra
-`node --test test/familyGreetings.test.js test/jsonStore.test.js` trong `20-10be`.
+Trong `20-10be/.env`, đặt `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `JWT_SECRET`. Khi chạy local, có thể để trống hai biến Upstash; dữ liệu sẽ được lưu dạng JSON trong `database/`. Không cần cấu hình Cloudinary để gửi lời nhắn không kèm ảnh. Nếu muốn tải ảnh khi chạy local, điền đủ ba biến Cloudinary.
 
-## Các chức năng mới
-- Khi chạy local không cấu hình Cloudinary, ảnh gửi kèm phản hồi được lưu trong `database/uploads/`. Khi cấu hình Cloudinary, ảnh được tải thẳng lên Cloudinary; đường dẫn và thông tin ảnh vẫn nằm cùng dữ liệu JSON.
-- `database/custom-greetings.json`: lời chúc do admin thêm/sửa; từ khóa không phân biệt hoa thường/dấu, khớp theo cụm từ, ưu tiên cụm dài hơn.
-- `database/visits.json`: mỗi lượt mở/chuyển trang công khai, mã phiên và vị trí gần đúng. Admin/login không tính. Mã phiên thay đổi khi mở phiên trình duyệt mới, không phải số người tuyệt đối.
-- Vị trí lấy theo IP công khai qua ipwho.is; local/private IP hiển thị mạng nội bộ. Lỗi tra cứu hiển thị chưa xác định. Khi ở sau một reverse proxy đáng tin cậy, đặt TRUST_PROXY=true và cấu hình proxy ghi đè X-Forwarded-For. Không lấy GPS.
-- Nhạc thử tự phát, khi trình duyệt chặn sẽ thử lại ngay lần tương tác đầu tiên; vẫn có nút tạm dừng.
-- Tài khoản admin đồng bộ từ ADMIN_USERNAME/ADMIN_PASSWORD khi backend khởi động; đổi cấu hình rồi restart sẽ thu hồi token cũ. Không có kiểm tra độ mạnh mật khẩu.
+Mở hai terminal tại thư mục gốc dự án. Chạy backend ở terminal thứ nhất:
+
+```bash
+npm start
+```
+
+Chạy frontend ở terminal thứ hai:
+
+```bash
+npm run dev
+```
+
+Mở địa chỉ Vite in ra trong terminal, thường là `http://localhost:5173`. Backend mặc định chạy tại `http://localhost:5001`; frontend local đã được cấu hình để gọi backend này.
+
+## Các trang
+
+- `/` — trang chính, nhập tên người thân để mở thư.
+- `/celebrate/<tên>` — thư và lời nhắn công khai gửi đến người đó.
+- `/login` — đăng nhập bằng thông tin đã đặt trong biến môi trường backend.
+- `/admin` — quản lý phản hồi, ảnh, lượt truy cập, địa chỉ IP và lời chúc tùy chỉnh.
+
+## Chạy kiểm tra và build
+
+Các lệnh sau chạy từ thư mục gốc:
+
+```bash
+npm test
+npm test --prefix 20-10fe
+npm run lint --prefix 20-10fe
+npm run build
+```
+
+`npm test` chạy kiểm thử backend; lệnh test thứ hai chạy kiểm thử frontend. Bản build frontend được tạo trong `20-10fe/dist/` và có thể tạo lại bằng `npm run build`.
+
+## Deploy lên Vercel
+
+Dự án đã có `vercel.json` để cài thư viện, build frontend và chuyển các yêu cầu `/api/*` tới backend serverless. Trong Project Settings → Environment Variables, khai báo:
+
+| Biến | Bắt buộc | Mục đích |
+| --- | --- | --- |
+| `ADMIN_USERNAME` | Có | Tên đăng nhập quản trị |
+| `ADMIN_PASSWORD` | Có | Mật khẩu quản trị |
+| `JWT_SECRET` | Có | Khóa ký phiên đăng nhập; dùng chuỗi ngẫu nhiên dài |
+| `UPSTASH_REDIS_REST_URL` | Có | REST URL của Upstash Redis |
+| `UPSTASH_REDIS_REST_TOKEN` | Có | REST token của Upstash Redis |
+| `CLOUDINARY_CLOUD_NAME` | Cần nếu có tải ảnh | Cloud name của Cloudinary |
+| `CLOUDINARY_API_KEY` | Cần nếu có tải ảnh | API key của Cloudinary |
+| `CLOUDINARY_API_SECRET` | Cần nếu có tải ảnh | API secret dùng phía máy chủ để ký upload |
+
+Thiết lập các biến cho Production, Preview hoặc cả hai tùy môi trường cần dùng, rồi redeploy. Không thêm tiền tố `VITE_` vào Redis token, Cloudinary API key/secret hoặc thông tin quản trị. Để `VITE_API_BASE_URL` trống hoặc không khai báo trên Vercel để frontend gọi API cùng domain.
+
+Upstash là bắt buộc trên Vercel vì hệ thống tệp của serverless không dùng làm nơi lưu dữ liệu lâu dài. Cloudinary cần thiết nếu muốn tải ảnh lên; không cấu hình Cloudinary thì người dùng vẫn có thể gửi lời nhắn dạng văn bản.
+
+## Dữ liệu và thư mục
+
+- `database/greetings.json` — lời chúc mặc định và quy tắc xưng hô.
+- `database/custom-greetings.json` — bộ lời chúc tùy chỉnh ban đầu.
+- Khi chạy local, các dữ liệu phát sinh được lưu dạng JSON trong `database/`; ảnh local nằm trong `database/uploads/`.
+- Khi chạy trên Vercel, dữ liệu phát sinh lưu ở Upstash Redis. Ảnh tải lên lưu ở Cloudinary; Redis chỉ lưu thông tin ảnh gắn với phản hồi.
+- `shared/familyGreetings.mjs` — xử lý tên người nhận và nội dung lời chúc dùng chung cho frontend/backend.
+
+Git bỏ qua các file `.env` và những tệp runtime như `admins.json`, `feedback.json`, `visits.json` cùng thư mục ảnh tải lên. Không commit thông tin đăng nhập, Redis token hoặc Cloudinary API secret.
