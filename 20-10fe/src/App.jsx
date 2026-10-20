@@ -26,7 +26,7 @@ function PublicAccessGate({ children }) {
 
   const status = adminPath ? 'allowed' : result.pathname === pathname ? result.status : 'checking'
   if (status === 'checking') return <div className="app-route-loading" role="status">Đang kiểm tra quyền truy cập…</div>
-  if (status === 'blocked') return <main className="blocked-access"><div><span aria-hidden="true">✿</span><h1>Trang này không thể truy cập</h1><p>Địa chỉ mạng của bạn hiện không được phép mở nội dung gia đình.</p></div></main>
+  if (status === 'blocked') return <main className="blocked-access"><div><h1>Bạn không thể truy cập vào trang web này !</h1></div></main>
   return children
 }
 

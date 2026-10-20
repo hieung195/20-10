@@ -24,9 +24,7 @@
   box-shadow: var(--shadow-soft);
 }
 
-.blocked-access > div > span { color: var(--clay); font-size: 34px; }
 .blocked-access h1 { margin: 16px 0; font-size: 34px; }
-.blocked-access p { margin: 0; color: var(--ink-2); line-height: 1.8; }
 
 /* ── ErrorBoundary: tờ giấy thư ── */
 .app-error {
