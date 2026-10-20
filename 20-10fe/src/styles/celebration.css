@@ -1,0 +1,219 @@
+/* ===========================================
+   Trang chúc chung /celebrate — bưu thiếp (1e / 2e)
+   =========================================== */
+.celebrate {
+  display: grid;
+  place-items: center;
+  padding: 40px 18px;
+}
+
+.postcard {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 100%);
+  padding: 34px 40px 30px;
+  background: var(--cream);
+  box-shadow: 0 22px 50px rgba(61, 47, 40, .2);
+  transform: rotate(-1deg);
+  animation: fadeUp .8s ease both;
+}
+
+.postcard--flip {
+  transform: rotate(1deg);
+}
+
+.postcard > .tape--center {
+  top: -14px;
+  width: 130px;
+  height: 30px;
+}
+
+.postcard__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.postcard__head > div:first-child {
+  min-width: 0;
+}
+
+.postcard__label {
+  margin: 0;
+  font: 18px var(--font-hand);
+  color: var(--muted);
+}
+
+.postcard__name {
+  margin: 4px 0 0;
+  font-size: 64px;
+  line-height: 1;
+  color: var(--clay);
+  overflow-wrap: anywhere;
+}
+
+.postcard__marks {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex: none;
+}
+
+.postcard__postmark {
+  position: relative;
+  z-index: 1;
+  margin-top: 10px;
+  margin-right: -26px;
+}
+
+.postcard__ask {
+  margin: 22px 0 10px;
+  font: 17px var(--font-hand);
+  color: var(--muted);
+}
+
+.postcard__choices {
+  display: grid;
+  gap: 10px;
+}
+
+.postcard__choices .btn-stamp {
+  min-height: 50px;
+  justify-content: flex-start;
+  font-size: 18px;
+  --rot: 0deg;
+}
+
+.postcard__loading {
+  margin: 22px 0 0;
+  font: italic 17px var(--font-body);
+  color: var(--muted);
+}
+
+.postcard__message {
+  margin: 22px 0 0;
+  font: 26px/1.5 var(--font-write);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.postcard__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 1.5px dashed var(--line);
+}
+
+.postcard__foot--right {
+  justify-content: flex-end;
+}
+
+.postcard__foot-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.postcard__sign {
+  font: 20px var(--font-write);
+  color: var(--muted);
+}
+
+.postcard__foot .btn-dashed {
+  padding: 8px 14px;
+  font-size: 16px;
+}
+
+.postcard__foot .btn-ink {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 16px;
+}
+
+.postcard__foot .link-dashed {
+  font-size: 16px;
+}
+
+@media (max-width: 600px) {
+  .celebrate {
+    padding: 24px 18px;
+  }
+
+  .postcard {
+    padding: 28px 22px 24px;
+  }
+
+  .postcard > .tape--center {
+    top: -12px;
+    width: 110px;
+    height: 26px;
+  }
+
+  .postcard__label {
+    font-size: 16px;
+  }
+
+  .postcard__name {
+    margin-top: 2px;
+    font-size: 46px;
+  }
+
+  .postcard__postmark {
+    margin-top: 0;
+    margin-right: 0;
+  }
+
+  .postcard__marks .stamp--inline {
+    display: none;
+  }
+
+  .postcard__message {
+    margin-top: 18px;
+    font-size: 22px;
+    line-height: 1.45;
+  }
+
+  .postcard__foot {
+    margin-top: 18px;
+    padding-top: 12px;
+  }
+
+  .postcard__sign {
+    flex-basis: 100%;
+    text-align: right;
+    font-size: 19px;
+  }
+
+  .postcard__foot .btn-dashed,
+  .postcard__foot .btn-ink {
+    font-size: 15px;
+  }
+}
+
+/* Bạn cùng lớp có thư hồi âm gửi đích danh: tem dán nổi trên bưu thiếp */
+.postcard__replies {
+  display: inline-block;
+  margin: 16px 0 0;
+  padding: 8px 14px;
+  border: 1.5px dashed var(--clay);
+  border-radius: 6px;
+  background: var(--peach-soft);
+  font: 18px var(--font-hand);
+  color: var(--clay);
+  text-decoration: none;
+  transform: rotate(-1deg);
+  animation: stampIn .6s cubic-bezier(.2, .9, .3, 1.2) .8s both;
+}
+
+.postcard__replies:hover {
+  background: #fff;
+}
+/* Floral prints sit inside the paper, below all letter content and controls. */
+.family-postcard{isolation:isolate}.letter-florals{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;user-select:none}.letter-content{position:relative;z-index:1}.letter-floral{position:absolute;display:block;width:clamp(200px,38%,340px);height:auto;opacity:.19;pointer-events:none}.letter-floral--1{top:1%;left:-65px;transform:rotate(-22deg)}.letter-floral--2{top:21%;right:-55px;transform:rotate(17deg)}.letter-floral--3{top:44%;left:-55px;transform:rotate(-17deg);opacity:.14}.letter-floral--4{top:67%;right:-70px;transform:rotate(15deg);opacity:.16}.letter-floral--5{bottom:-30px;left:3%;transform:rotate(-12deg);opacity:.18}
+@media(max-width:600px){.letter-floral{width:220px;opacity:.16}.letter-floral--1{left:-85px}.letter-floral--2{right:-90px}.letter-floral--3{left:-80px;opacity:.12}.letter-floral--4{right:-100px;opacity:.14}.letter-floral--5{left:-60px;opacity:.15}}

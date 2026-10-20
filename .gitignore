@@ -1,0 +1,23 @@
+# Dependencies and generated output
+**/node_modules/
+**/dist/
+**/coverage/
+
+# Local environment and authentication
+**/.env
+**/.env.*
+!**/.env.example
+/database/admins.json
+/database/feedback.json
+/database/visits.json
+/database/uploads/
+/database/*.tmp
+
+# Logs and editor files
+*.log
+.DS_Store
+Thumbs.db
+**/.idea/
+**/.vscode/
+*.swp
+*.swo

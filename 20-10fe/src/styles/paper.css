@@ -1,0 +1,537 @@
+/* ===========================================
+   Thành phần "giấy" dùng chung: cánh hoa, băng keo, polaroid, tem,
+   dấu bưu điện, phong bì. JSX tương ứng trong src/components/paper/.
+   =========================================== */
+
+/* ── Cánh hoa rơi ── */
+.petals {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.petal {
+  position: absolute;
+  top: 0;
+  border-radius: 50% 50% 50% 0;
+  opacity: 0;
+  animation: petal var(--petal-dur, 12s) linear var(--petal-delay, 0s) infinite;
+}
+
+/* ── Băng keo ── */
+.tape {
+  position: absolute;
+  width: 100px;
+  height: 26px;
+  background: rgba(230, 213, 191, .85);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  pointer-events: none;
+}
+
+.tape--center {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(var(--tape-rot, -3deg));
+}
+
+.tape--left {
+  top: -10px;
+  left: -14px;
+  width: 80px;
+  height: 24px;
+  transform: rotate(-35deg);
+}
+
+.tape--right {
+  top: -10px;
+  right: -14px;
+  width: 80px;
+  height: 24px;
+  transform: rotate(35deg);
+}
+
+/* ── Polaroid ── */
+.polaroid {
+  position: relative;
+  margin: 0;
+  padding: 12px 12px 46px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  transform: rotate(var(--rot, 0deg)) translateY(var(--lift, 0px));
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.polaroid--sway {
+  animation: sway 6s ease-in-out infinite;
+}
+
+.polaroid--hover:hover,
+.polaroid--hover:focus-within {
+  transform: rotate(0) translateY(calc(var(--lift, 0px) - 3px));
+  box-shadow: var(--shadow-card);
+}
+
+.polaroid__frame {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  aspect-ratio: var(--aspect, 4 / 3);
+  overflow: hidden;
+  background: var(--beige-2);
+  color: inherit;
+}
+
+button.polaroid__frame {
+  cursor: zoom-in;
+}
+
+.polaroid__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+
+.polaroid__img.is-loaded {
+  opacity: 1;
+}
+
+.polaroid__fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(45deg, var(--beige) 0 8px, var(--beige-2) 8px 16px);
+  color: var(--muted);
+  font: 56px var(--font-hand);
+}
+
+.polaroid__caption {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  margin: 0;
+  font: 20px var(--font-write);
+  color: var(--ink-2);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.polaroid--square {
+  --aspect: 1;
+}
+
+.polaroid--sm {
+  padding: 9px 9px 36px;
+}
+
+.polaroid--sm .polaroid__caption {
+  left: 8px;
+  right: 8px;
+  bottom: 6px;
+  font-size: 16px;
+}
+
+.polaroid--sm .tape--center {
+  top: -9px;
+  width: 70px;
+  height: 20px;
+}
+
+/* ── Tem ── */
+.stamp {
+  position: absolute;
+  padding: 5px;
+  background: #fff;
+  outline: 2px dashed var(--beige);
+  outline-offset: -4px;
+  box-shadow: var(--shadow-tiny);
+  transform: rotate(var(--rot, 6deg));
+  line-height: 1;
+}
+
+.stamp--inline {
+  position: static;
+  display: inline-block;
+}
+
+.stamp__core {
+  width: 46px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  background: var(--peach);
+  font: 12px/1.1 var(--font-hand);
+  color: var(--clay);
+  text-align: center;
+}
+
+.stamp--anon .stamp__core {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+
+.stamp--logo .stamp__core {
+  width: 58px;
+  height: 70px;
+  background: none;
+}
+
+.stamp--logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stamp--sm .stamp__core {
+  width: 38px;
+  height: 46px;
+  font-size: 11px;
+}
+
+.stamp--sm.stamp--logo .stamp__core {
+  width: 42px;
+  height: 50px;
+}
+
+.stamp--in {
+  animation: stampIn .6s cubic-bezier(.2, .9, .3, 1.2) var(--delay, 0s) both;
+}
+
+/* ── Dấu bưu điện ── */
+.postmark {
+  display: inline-grid;
+  place-items: center;
+  width: var(--size, 112px);
+  height: var(--size, 112px);
+  border: 2px solid rgba(168, 95, 63, .55);
+  border-radius: 50%;
+  color: var(--clay);
+  font: var(--pm-font, 15px)/1.1 var(--font-hand);
+  text-align: center;
+  letter-spacing: .06em;
+  transform: rotate(var(--rot, -12deg));
+}
+
+.postmark b {
+  font-size: var(--pm-big, 19px);
+  font-weight: 400;
+}
+
+.postmark--moss {
+  border-color: rgba(111, 133, 96, .7);
+  color: var(--moss-ink);
+}
+
+.postmark--bg {
+  background: rgba(247, 239, 227, .75);
+}
+
+.postmark--in {
+  animation: stampIn .6s cubic-bezier(.2, .9, .3, 1.2) var(--delay, .5s) both;
+}
+
+/* ── Phong bì ── */
+.envelope {
+  --env-w: 250px;
+  --env-h: 170px;
+  --env-top: 24px;
+  --env-flap: 92px;
+  --env-wing: 146px;
+  --env-seal: 54px;
+  --env-seal-top: 92px;
+  --env-seal-font: 18px;
+  --env-pocket: 104px;
+  position: relative;
+  width: var(--env-w);
+  height: var(--env-h);
+}
+
+.envelope--lg {
+  --env-w: 300px;
+  --env-h: 230px;
+  --env-top: 30px;
+  --env-flap: 112px;
+  --env-wing: 200px;
+  --env-seal: 64px;
+  --env-seal-top: 118px;
+  --env-seal-font: 22px;
+  --env-pocket: 140px;
+}
+
+.envelope--wiggle {
+  animation: wiggle 4s ease-in-out infinite;
+}
+
+.envelope__body {
+  position: absolute;
+  inset: var(--env-top) 0 0;
+  background: var(--cream);
+  box-shadow: 0 20px 40px rgba(61, 47, 40, .22);
+}
+
+.envelope__flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--env-top);
+  height: 0;
+  border-left: calc(var(--env-w) / 2) solid transparent;
+  border-right: calc(var(--env-w) / 2) solid transparent;
+  border-top: var(--env-flap) solid var(--peach);
+  transform-origin: top;
+}
+
+.envelope__wing {
+  position: absolute;
+  bottom: 0;
+  height: 0;
+  border-bottom: var(--env-wing) solid var(--beige-2);
+}
+
+.envelope__wing--left {
+  left: 0;
+  border-right: calc(var(--env-w) / 2) solid transparent;
+}
+
+.envelope__wing--right {
+  right: 0;
+  border-bottom-color: var(--beige);
+  border-left: calc(var(--env-w) / 2) solid transparent;
+}
+
+/* Không dùng translateX(-50%) cho niêm phong: keyframe wiggle ghi đè transform */
+.envelope__seal {
+  position: absolute;
+  left: calc(50% - var(--env-seal) / 2);
+  top: var(--env-seal-top);
+  width: var(--env-seal);
+  height: var(--env-seal);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #c97a5a, var(--clay) 60%, var(--clay-dark));
+  box-shadow: 0 6px 14px rgba(61, 47, 40, .35);
+  font: var(--env-seal-font) var(--font-hand);
+  color: var(--peach-soft);
+}
+
+.envelope__seal--wiggle {
+  animation: wiggle 3s ease-in-out infinite;
+}
+
+.envelope__logo {
+  right: 8px;
+  top: -6px;
+  --rot: 6deg;
+}
+
+.envelope--lg .envelope__logo {
+  right: 16px;
+  top: 0;
+}
+
+.envelope--open .envelope__flap {
+  transform: rotateX(-160deg);
+  filter: drop-shadow(0 6px 10px rgba(61, 47, 40, .2));
+}
+
+.envelope__letter {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: -20px;
+  height: 110px;
+  padding: 14px 16px;
+  background: var(--letter) repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px);
+  box-shadow: 0 10px 24px rgba(61, 47, 40, .18);
+  font: 20px/28px var(--font-write);
+  color: var(--clay);
+}
+
+.envelope__pocket {
+  position: absolute;
+  inset: var(--env-pocket) 0 0;
+  background: #f3e4d2;
+  clip-path: polygon(0 0, 50% 40%, 100% 0, 100% 100%, 0 100%);
+}
+
+/* ── Ghi chú trống (thay EmptyState cũ) ── */
+.empty-note {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 26px 20px;
+  text-align: center;
+}
+
+.empty-note__icon {
+  font-size: 34px;
+}
+
+.empty-note p {
+  margin: 0;
+  font: 20px var(--font-write);
+  color: var(--muted);
+}
+
+/* ── Đếm ngược tới 20/10 (màn khoá, trang chủ): ô số kiểu tem ngày ── */
+.countdown {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 16px;
+  margin: 22px 0 0;
+  font: 15px var(--font-hand);
+  color: var(--muted);
+}
+
+.countdown b {
+  display: block;
+  min-width: 1.4em;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--clay);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Bông hoa 12A1: mỗi bạn mở quà, một cánh tô màu ── */
+.flower {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.flower__art {
+  position: relative;
+  width: var(--flower-size, 170px);
+}
+
+.flower__art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Cánh chưa nở: viền nét đứt, hơi thu lại. Đổi class → transition nên chỉ cánh
+   vừa nở lúc đang xem mới có chuyển động; tải trang thì hoa hiện sẵn */
+.flower__petal {
+  fill: rgba(255, 253, 248, .85);
+  stroke: #b9a48d;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scale(.84);
+  transition: fill .8s ease, stroke .8s ease, transform .8s cubic-bezier(.2, .9, .3, 1.4);
+}
+
+.flower__petal.is-open {
+  fill: var(--peach);
+  stroke: var(--clay);
+  stroke-dasharray: none;
+  transform: scale(1);
+}
+
+.flower.is-complete .flower__petal.is-open {
+  fill: #f0b995;
+}
+
+.flower__count {
+  font: 28px var(--font-hand);
+  fill: var(--peach-soft);
+}
+
+/* Cánh hoa rơi vào giữa mỗi khi có thêm một bạn mở quà */
+.flower__drop {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 13px;
+  height: 17px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--peach);
+  box-shadow: 0 2px 4px rgba(168, 95, 63, .25);
+  pointer-events: none;
+  animation: flowerDrop 1.5s ease-in both;
+}
+
+@keyframes flowerDrop {
+  0% { transform: translate(-50%, -46px) rotate(0); opacity: 0; }
+  20% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(-50%, calc(var(--flower-size, 170px) * .44)) rotate(300deg) scale(.4); opacity: 0; }
+}
+
+.flower__caption {
+  font: 16px var(--font-hand);
+  color: var(--muted);
+  text-align: center;
+}
+
+.flower__caption b {
+  font-weight: 400;
+  color: var(--clay);
+}
+
+.flower--compact {
+  --flower-size: 104px;
+}
+
+.flower--compact .flower__caption {
+  font-size: 15px;
+}
+
+/* ── Ảnh kèm lời chúc (tối đa 4) ── */
+/* Ảnh đã chọn, chờ gửi: mỗi ảnh một nút bỏ */
+.picked-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.picked-images li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.picked-images .polaroid {
+  width: 96px;
+  padding-bottom: 12px;
+}
+
+/* Nhiều ảnh trên trang: lưới hai cột, một ảnh giữ khổ như cũ */
+.photo-set {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+  width: min(420px, 100%);
+}
+
+.photo-set > .polaroid {
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+
+.photo-set > .polaroid:nth-child(even) {
+  --rot: 2deg;
+}

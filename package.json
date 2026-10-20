@@ -1,0 +1,11 @@
+{
+  "name": "thu-nha-family-gift",
+  "private": true,
+  "scripts": {
+    "setup": "npm ci --prefix 20-10be && npm ci --prefix 20-10fe",
+    "dev": "npm run dev --prefix 20-10fe",
+    "build": "npm run build --prefix 20-10fe",
+    "start": "cd 20-10be && npm start",
+    "test": "npm test --prefix 20-10be"
+  }
+}
