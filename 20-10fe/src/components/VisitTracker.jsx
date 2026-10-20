@@ -4,7 +4,7 @@ import api from '../services/api'
 export default function VisitTracker() {
   const { pathname } = useLocation()
   useEffect(() => {
-    if (pathname.startsWith('/admin') || pathname === '/login') return
+    if (pathname === '/login') return
     let id
     try {
       id = sessionStorage.getItem('family-visit-id') || crypto.randomUUID()
