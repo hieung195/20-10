@@ -6,6 +6,28 @@
   color: var(--muted);
 }
 
+.blocked-access {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  background: var(--paper);
+}
+
+.blocked-access > div {
+  max-width: 520px;
+  padding: 48px 32px;
+  background: var(--letter);
+  border: 1px solid var(--beige);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.blocked-access > div > span { color: var(--clay); font-size: 34px; }
+.blocked-access h1 { margin: 16px 0; font-size: 34px; }
+.blocked-access p { margin: 0; color: var(--ink-2); line-height: 1.8; }
+
 /* ── ErrorBoundary: tờ giấy thư ── */
 .app-error {
   min-height: 100svh;

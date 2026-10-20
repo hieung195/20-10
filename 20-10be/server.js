@@ -9,7 +9,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const fs = require('node:fs/promises');
 const { locate } = require('./services/visitLocation');
-const { resolveClientIp } = require('./services/clientIp');
+const { normalizeIp, resolveClientIp } = require('./services/clientIp');
 require('dotenv').config();
 const { createJsonStore } = require('./services/jsonStore');
 const { signToken, verifyToken } = require('./utils/jwt');
@@ -76,6 +76,33 @@ function createApp(options = {}) {
   const app = express();
   const store = createJsonStore(options.dataDir || process.env.DATA_DIR || path.join(__dirname, '..', 'database'));
   const uploadsDir = path.join(options.dataDir || process.env.DATA_DIR || path.join(__dirname, '..', 'database'), 'uploads');
+  let blockedIpCache = [];
+  let blockedIpCacheAt = 0;
+  async function getBlockedIps() {
+    if (Date.now() - blockedIpCacheAt < 5000) return blockedIpCache;
+    try {
+      const records = await store.read('blocked-ips', []);
+      blockedIpCache = records.map(item => normalizeIp(typeof item === 'string' ? item : item?.ip)).filter(Boolean);
+      blockedIpCacheAt = Date.now();
+    } catch (error) {
+      console.error(`Không tải được danh sách IP bị chặn: ${error.message}`);
+      blockedIpCacheAt = Date.now();
+    }
+    return blockedIpCache;
+  }
+  function updateBlockedIpCache(records) {
+    blockedIpCache = records.map(item => normalizeIp(typeof item === 'string' ? item : item?.ip)).filter(Boolean);
+    blockedIpCacheAt = Date.now();
+  }
+  function isAdminManagementPath(pathname) {
+    return pathname === '/login' || pathname === '/admin' || pathname.startsWith('/admin/')
+      || pathname === '/api/health' || pathname === '/api/ready'
+      || pathname.startsWith('/api/admin/') || pathname.startsWith('/api/auth/admin/');
+  }
+  function isStaticAssetPath(pathname) {
+    return pathname.startsWith('/assets/') || pathname.startsWith('/fonts/')
+      || pathname === '/favicon.svg' || pathname === '/robots.txt';
+  }
   const ready = store.update('admins', [], async admins => {
     if (process.env.VERCEL && store.storage !== 'upstash') throw new Error('Cần cấu hình Upstash Redis trước khi chạy trên Vercel.');
     if (admins.length && admins[0].username === process.env.ADMIN_USERNAME && await bcrypt.compare(process.env.ADMIN_PASSWORD || '', admins[0].passwordHash)) return admins;
@@ -98,6 +125,12 @@ function createApp(options = {}) {
     const allowed = ['http://localhost:5173', 'http://127.0.0.1:5173', process.env.FRONTEND_URL, ...vercelOrigins].filter(Boolean);
     callback(origin && !allowed.includes(origin) ? Object.assign(new Error('Not allowed by CORS'), { statusCode: 403 }) : null, true);
   } }));
+  app.use(asyncHandler(async (req, res, next) => {
+    if (isAdminManagementPath(req.path) || isStaticAssetPath(req.path)) return next();
+    const ip = resolveClientIp(req);
+    if (ip && (await getBlockedIps()).includes(ip)) return sendError(res, 'Địa chỉ IP này đã bị chặn truy cập.', 403);
+    return next();
+  }));
   app.use(compression());
   app.use(express.json({ limit: '100kb' }));
   app.use('/uploads', express.static(uploadsDir, { dotfiles: 'deny' }));
@@ -118,6 +151,7 @@ function createApp(options = {}) {
     next();
   });
   app.get('/api/health', (req, res) => res.json({ status: 'ok', storage: store.storage }));
+  app.get('/api/access', (req, res) => sendSuccess(res, { allowed: true }));
   app.get('/api/ready', asyncHandler(async (req, res) => {
     if (process.env.VERCEL && store.storage !== 'upstash') throw new Error('Cần cấu hình Upstash Redis trước khi chạy trên Vercel.');
     await ready;
@@ -213,7 +247,11 @@ function createApp(options = {}) {
         const bytes = Number(image.bytes);
         images.push({ url: parsedUrl.href, publicId: image.publicId, bytes: Number.isFinite(bytes) && bytes >= 0 ? bytes : 0, format, createdAt: new Date().toISOString() });
       }
-      const location = await locate(resolveClientIp(req));
+      const location = await locate(resolveClientIp(req), process.env.VERCEL ? {
+        city: req.get('x-vercel-ip-city'),
+        region: req.get('x-vercel-ip-country-region'),
+        country: req.get('x-vercel-ip-country'),
+      } : undefined);
       let saved;
       let inserted = false;
       await store.update('feedback', [], rows => {
@@ -239,7 +277,11 @@ function createApp(options = {}) {
     const { sessionId, page } = req.body || {};
     if (typeof sessionId !== 'string' || sessionId.length > 100 || typeof page !== 'string' || !page.startsWith('/') || page.length > 500) return sendError(res, 'Thông tin truy cập không hợp lệ', 400);
     const ip = resolveClientIp(req);
-    const location = await locate(ip);
+    const location = await locate(ip, process.env.VERCEL ? {
+      city: req.get('x-vercel-ip-city'),
+      region: req.get('x-vercel-ip-country-region'),
+      country: req.get('x-vercel-ip-country'),
+    } : undefined);
     await store.update('visits', [], rows => [...rows, { id: crypto.randomUUID(), sessionId, page, ip, location, createdAt: new Date().toISOString() }]);
     return sendSuccess(res, { recorded: true });
   }));
@@ -247,6 +289,39 @@ function createApp(options = {}) {
     const feedback = await store.read('feedback', []);
     const visits = await store.read('visits', []);
     return sendSuccess(res, { feedbackCount: feedback.filter(row => !row.deletedAt).length, visitCount: visits.length, visitors: new Set(visits.map(row => row.sessionId)).size, visits: visits.slice(-200).reverse() });
+  }));
+  app.get('/api/admin/blocked-ips', authenticate, asyncHandler(async (req, res) => {
+    const items = await store.read('blocked-ips', []);
+    updateBlockedIpCache(items);
+    return sendSuccess(res, { items: items.map(item => typeof item === 'string' ? { ip: normalizeIp(item) } : item).filter(item => item.ip) });
+  }));
+  app.post('/api/admin/blocked-ips', authenticate, asyncHandler(async (req, res) => {
+    const ip = normalizeIp(req.body?.ip);
+    if (!ip) return sendError(res, 'Địa chỉ IP không hợp lệ', 400);
+    let blocked;
+    const records = await store.update('blocked-ips', [], rows => {
+      const existing = rows.find(item => normalizeIp(typeof item === 'string' ? item : item?.ip) === ip);
+      blocked = existing ? (typeof existing === 'string' ? { ip: normalizeIp(existing) } : existing) : { ip, createdAt: new Date().toISOString() };
+      return existing ? rows : [...rows, blocked];
+    });
+    updateBlockedIpCache(records);
+    return sendSuccess(res, blocked, 201);
+  }));
+  app.delete('/api/admin/blocked-ips/:ip', authenticate, asyncHandler(async (req, res) => {
+    const ip = normalizeIp(req.params.ip);
+    if (!ip) return sendError(res, 'Địa chỉ IP không hợp lệ', 400);
+    let found = false;
+    const records = await store.update('blocked-ips', [], rows => {
+      const remaining = rows.filter(item => {
+        const matches = normalizeIp(typeof item === 'string' ? item : item?.ip) === ip;
+        if (matches) found = true;
+        return !matches;
+      });
+      return remaining;
+    });
+    updateBlockedIpCache(records);
+    if (!found) return sendError(res, 'IP này chưa bị chặn', 404);
+    return sendSuccess(res, { unblocked: true });
   }));
   app.delete('/api/admin/visits/:id', authenticate, asyncHandler(async (req, res) => {
     let found = false;

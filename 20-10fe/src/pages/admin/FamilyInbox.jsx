@@ -26,6 +26,7 @@ async function fetchAll() {
     ['feedback', 'Phản hồi', { items: [], total: null }],
     ['greetings', 'Lời chúc', { items: [] }],
     ['images', 'Thư viện ảnh', { items: [], total: null, totalBytes: 0 }],
+    ['blocked-ips', 'IP bị chặn', { items: [] }],
   ]
   const results = await Promise.allSettled(endpoints.map(([key]) => request(key)))
   if (results.some(result => result.status === 'rejected' && result.reason?.status === 401)) throw results.find(result => result.status === 'rejected' && result.reason?.status === 401).reason
@@ -64,6 +65,8 @@ export default function FamilyInbox() {
   const [deleting, setDeleting] = useState(null)
   const [deletingVisit, setDeletingVisit] = useState(null)
   const [deletingImage, setDeletingImage] = useState(null)
+  const [changingBlockedIp, setChangingBlockedIp] = useState(null)
+  const [manualIp, setManualIp] = useState('')
   const [form, setForm] = useState(blank)
   const setLoadedData = useCallback(result => {
     setData(result)
@@ -111,6 +114,19 @@ export default function FamilyInbox() {
       setMessage('Đã xóa ảnh.'); await load()
     } catch (err) { setError(err.message) } finally { setDeletingImage(null) }
   }
+  async function changeBlockedIp(ip, block) {
+    if (!ip) return
+    const alreadyBlocked = data?.blockedIps.items.some(item => item.ip === ip)
+    if (block && alreadyBlocked) return
+    if (block && !window.confirm(`Chặn IP ${ip}? Người dùng chung IP (ví dụ cùng Wi-Fi, mạng công ty hoặc VPN) cũng có thể bị ảnh hưởng. Bạn vẫn có thể vào admin để bỏ chặn.`)) return
+    setChangingBlockedIp(ip); setError(''); setMessage('')
+    try {
+      if (block) await request('blocked-ips', { ip })
+      else await request(`blocked-ips/${encodeURIComponent(ip)}`, undefined, 'DELETE')
+      setMessage(block ? `Đã chặn IP ${ip}.` : `Đã bỏ chặn IP ${ip}.`)
+      await load()
+    } catch (err) { setError(err.message) } finally { setChangingBlockedIp(null) }
+  }
   const field = (key, value) => setForm(current => ({ ...current, [key]: value }))
   return <div className="family-admin-shell page-paper">
     <aside className={`family-sidebar${menuOpen ? ' is-open' : ''}`}>
@@ -129,9 +145,12 @@ export default function FamilyInbox() {
         <div className="family-visit-card__heading"><span>ĐỊA CHỈ IP</span><time dateTime={visit.createdAt}>{new Date(visit.createdAt).toLocaleString('vi-VN')}</time></div>
         <strong className="family-visit-card__ip">{visit.ip || 'Chưa lưu IP (lượt cũ)'}</strong>
         <div className="family-visit-card__details"><span>{visit.location?.label || 'Chưa xác định vị trí'}</span><span>{pageLabel(visit.page)}</span></div>
-        <button className="btn-dashed family-delete-button family-visit-delete" type="button" disabled={deletingVisit !== null} onClick={() => deleteVisit(visit)}>{deletingVisit === visit.id ? 'Đang xóa…' : 'Xóa lượt truy cập'}</button>
+        <div className="family-visit-actions"><button className="btn-dashed family-block-ip" type="button" disabled={!visit.ip || changingBlockedIp !== null || data?.blockedIps.items.some(item => item.ip === visit.ip)} onClick={() => changeBlockedIp(visit.ip, true)}>{changingBlockedIp === visit.ip ? 'Đang chặn…' : data?.blockedIps.items.some(item => item.ip === visit.ip) ? 'IP đã bị chặn' : 'Chặn IP'}</button><button className="btn-dashed family-delete-button family-visit-delete" type="button" disabled={deletingVisit !== null} onClick={() => deleteVisit(visit)}>{deletingVisit === visit.id ? 'Đang xóa…' : 'Xóa lượt truy cập'}</button></div>
       </article>)}</div>
       {data?.overview.visits.length === 0 && <p className="family-empty">Chưa có lượt truy cập nào.</p>}
+      <div className="family-blocked-panel"><div><h3>Danh sách IP bị chặn</h3><p className="family-admin-hint">Người dùng sẽ thấy thông báo từ chối truy cập và không thể gửi phản hồi. Trang đăng nhập/admin vẫn dùng được để bạn bỏ chặn.</p></div><form className="family-block-ip-form" onSubmit={event => { event.preventDefault(); changeBlockedIp(manualIp.trim(), true).then(() => setManualIp('')) }}><label className="sr-only" htmlFor="block-ip-input">Địa chỉ IP cần chặn</label><input id="block-ip-input" value={manualIp} onChange={event => setManualIp(event.target.value)} placeholder="Nhập địa chỉ IP" autoCapitalize="off" spellCheck="false" /><button className="btn-dashed family-block-ip" type="submit" disabled={!manualIp.trim() || changingBlockedIp !== null}>Chặn IP</button></form>
+        {data?.blockedIps.items.length ? <ul className="family-blocked-list">{data.blockedIps.items.map(item => <li key={item.ip}><span><strong>{item.ip}</strong>{item.createdAt && <small> · {new Date(item.createdAt).toLocaleString('vi-VN')}</small>}</span><button className="btn-dashed family-unblock-ip" type="button" disabled={changingBlockedIp !== null} onClick={() => changeBlockedIp(item.ip, false)}>{changingBlockedIp === item.ip ? 'Đang gỡ…' : 'Bỏ chặn'}</button></li>)}</ul> : <p className="family-empty family-blocked-empty">Chưa chặn IP nào.</p>}
+      </div>
     </section>
     <section id="responses" className="family-admin-panel" hidden={active.id !== 'responses'}><h2>Phản hồi từ người thân</h2><p className="family-admin-hint">Vị trí được ước tính gần đúng theo IP; phản hồi gửi trước đây có thể chưa có tên người gửi hoặc vị trí.</p>{data?.errors.feedback && <p role="status">{data.errors.feedback}</p>}{data?.feedback.total === 0 && <p>Chưa có phản hồi.</p>}{data?.feedback.items.map(item => <article className="family-inbox-item" key={item.id}><div className="family-response-header"><h3><Link className="family-open-letter" to={`/celebrate/${encodeURIComponent(item.name || item.recipient)}#feedback-${encodeURIComponent(item.id)}`} target="_blank" rel="noreferrer">{item.recipient}</Link></h3><div className="family-response-actions"><Link className="link-dashed" to={`/celebrate/${encodeURIComponent(item.name || item.recipient)}#feedback-${encodeURIComponent(item.id)}`} target="_blank" rel="noreferrer">Mở phản hồi trong thư ↗</Link><button className="btn-dashed family-delete-button" type="button" disabled={deleting !== null} onClick={() => deleteFeedback(item)} aria-label={`Xóa phản hồi của ${item.recipient}`}>{deleting === item.id ? 'Đang xóa…' : 'Xóa phản hồi'}</button></div></div><div className="family-response-meta"><span><strong>Người gửi:</strong> {item.sender || 'Chưa ghi tên'}</span><span><strong>Vị trí gần đúng:</strong> {item.location?.label || 'Chưa ghi nhận'}</span><span><strong>Gửi từ thư:</strong> {item.recipient}</span></div><time>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(url => <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh từ ${item.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a>)}</div></article>)}</section>
     <section id="greetings" className="family-admin-panel" hidden={active.id !== 'greetings'}><h2>{form.id ? 'Cập nhật lời chúc' : 'Thêm lời chúc theo từ khóa'}</h2><form className="family-form" onSubmit={save}>
