@@ -7,7 +7,7 @@ async function uploadToCloudinary(file) {
   const signed = (await api.post('/api/uploads/signature')).data.data
   const form = new FormData()
   form.append('file', file)
-  for (const key of ['apiKey', 'allowed_formats', 'public_id', 'signature', 'timestamp']) {
+  for (const key of ['apiKey', 'allowed_formats', 'overwrite', 'public_id', 'signature', 'timestamp']) {
     const cloudinaryKey = key === 'apiKey' ? 'api_key' : key
     form.append(cloudinaryKey, String(signed[key]))
   }
