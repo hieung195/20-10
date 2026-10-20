@@ -11,6 +11,11 @@
 .family-visit-card__ip{overflow-wrap:anywhere;font:600 17px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
 .family-visit-card__details{display:grid;gap:6px;padding-top:10px;border-top:1px solid var(--line);font:14px/1.5 var(--font-body);color:var(--muted)}
 .family-visit-card__details span{overflow-wrap:anywhere}
+.family-response-actions,.family-gallery-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.family-response-actions .family-delete-button,.family-visit-delete,.family-image-delete{min-height:40px;padding:8px 12px;color:#9b382b;border-color:#b9796e}
+.family-open-letter{color:inherit;text-decoration:none}
+.family-open-letter:hover{text-decoration:underline;text-underline-offset:4px}
+.family-gallery-actions{justify-content:space-between}
 @media(max-width:760px){.family-visit-grid{grid-template-columns:1fr;max-height:620px}.family-visit-card{padding:14px}}
 
 .family-response-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.family-delete-button{color:#9b382b;border-color:#b9796e;min-height:44px}.family-delete-button:disabled{opacity:.5;cursor:wait}

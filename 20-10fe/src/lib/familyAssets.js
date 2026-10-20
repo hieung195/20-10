@@ -24,4 +24,5 @@ export const familyAssets = Object.freeze({
     "https://res.cloudinary.com/s0kzdkda/image/upload/v1792519655/family-assets/mother-memories/memory-9.jpg",
   ]),
   motherVideoPoster: "https://res.cloudinary.com/s0kzdkda/image/upload/v1792519654/family-assets/mother-memories/video-poster.jpg",
+  motherVideo: "https://res.cloudinary.com/s0kzdkda/video/upload/v1792520354/family-assets/mother-memories/memory-video.mp4",
 })

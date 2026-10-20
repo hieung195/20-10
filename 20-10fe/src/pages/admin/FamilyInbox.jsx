@@ -62,6 +62,8 @@ export default function FamilyInbox() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(null)
+  const [deletingVisit, setDeletingVisit] = useState(null)
+  const [deletingImage, setDeletingImage] = useState(null)
   const [form, setForm] = useState(blank)
   const setLoadedData = useCallback(result => {
     setData(result)
@@ -93,6 +95,22 @@ export default function FamilyInbox() {
       setMessage('Đã xóa phản hồi.'); await load()
     } catch (err) { setError(err.message) } finally { setDeleting(null) }
   }
+  async function deleteVisit(visit) {
+    if (!window.confirm(`Xóa lượt truy cập ${visit.ip || '(chưa có IP)'} khỏi thống kê?`)) return
+    setDeletingVisit(visit.id); setError(''); setMessage('')
+    try {
+      await request(`visits/${encodeURIComponent(visit.id)}`, undefined, 'DELETE')
+      setMessage('Đã xóa lượt truy cập.'); await load()
+    } catch (err) { setError(err.message) } finally { setDeletingVisit(null) }
+  }
+  async function deleteImage(image) {
+    if (!window.confirm(`Xóa ảnh của ${image.recipient}? Ảnh sẽ bị xóa khỏi thư và Cloudinary.`)) return
+    setDeletingImage(image.id); setError(''); setMessage('')
+    try {
+      await request(`images/${encodeURIComponent(image.feedbackId)}/${image.index}`, undefined, 'DELETE')
+      setMessage('Đã xóa ảnh.'); await load()
+    } catch (err) { setError(err.message) } finally { setDeletingImage(null) }
+  }
   const field = (key, value) => setForm(current => ({ ...current, [key]: value }))
   return <div className="family-admin-shell page-paper">
     <aside className={`family-sidebar${menuOpen ? ' is-open' : ''}`}>
@@ -111,10 +129,11 @@ export default function FamilyInbox() {
         <div className="family-visit-card__heading"><span>ĐỊA CHỈ IP</span><time dateTime={visit.createdAt}>{new Date(visit.createdAt).toLocaleString('vi-VN')}</time></div>
         <strong className="family-visit-card__ip">{visit.ip || 'Chưa lưu IP (lượt cũ)'}</strong>
         <div className="family-visit-card__details"><span>{visit.location?.label || 'Chưa xác định vị trí'}</span><span>{pageLabel(visit.page)}</span></div>
+        <button className="btn-dashed family-delete-button family-visit-delete" type="button" disabled={deletingVisit !== null} onClick={() => deleteVisit(visit)}>{deletingVisit === visit.id ? 'Đang xóa…' : 'Xóa lượt truy cập'}</button>
       </article>)}</div>
       {data?.overview.visits.length === 0 && <p className="family-empty">Chưa có lượt truy cập nào.</p>}
     </section>
-    <section id="responses" className="family-admin-panel" hidden={active.id !== 'responses'}><h2>Phản hồi từ người thân</h2><p className="family-admin-hint">Vị trí được ước tính gần đúng theo IP; phản hồi gửi trước đây có thể chưa có tên người gửi hoặc vị trí.</p>{data?.errors.feedback && <p role="status">{data.errors.feedback}</p>}{data?.feedback.total === 0 && <p>Chưa có phản hồi.</p>}{data?.feedback.items.map(item => <article className="family-inbox-item" key={item.id}><div className="family-response-header"><h3>{item.recipient}</h3><button className="btn-dashed family-delete-button" type="button" disabled={deleting !== null} onClick={() => deleteFeedback(item)} aria-label={`Xóa phản hồi của ${item.recipient}`}>{deleting === item.id ? 'Đang xóa…' : 'Xóa phản hồi'}</button></div><div className="family-response-meta"><span><strong>Người gửi:</strong> {item.sender || 'Chưa ghi tên'}</span><span><strong>Vị trí gần đúng:</strong> {item.location?.label || 'Chưa ghi nhận'}</span><span><strong>Gửi từ thư:</strong> {item.recipient}</span></div><time>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(url => <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh từ ${item.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a>)}</div></article>)}</section>
+    <section id="responses" className="family-admin-panel" hidden={active.id !== 'responses'}><h2>Phản hồi từ người thân</h2><p className="family-admin-hint">Vị trí được ước tính gần đúng theo IP; phản hồi gửi trước đây có thể chưa có tên người gửi hoặc vị trí.</p>{data?.errors.feedback && <p role="status">{data.errors.feedback}</p>}{data?.feedback.total === 0 && <p>Chưa có phản hồi.</p>}{data?.feedback.items.map(item => <article className="family-inbox-item" key={item.id}><div className="family-response-header"><h3><Link className="family-open-letter" to={`/celebrate/${encodeURIComponent(item.name || item.recipient)}#feedback-${encodeURIComponent(item.id)}`} target="_blank" rel="noreferrer">{item.recipient}</Link></h3><div className="family-response-actions"><Link className="link-dashed" to={`/celebrate/${encodeURIComponent(item.name || item.recipient)}#feedback-${encodeURIComponent(item.id)}`} target="_blank" rel="noreferrer">Mở phản hồi trong thư ↗</Link><button className="btn-dashed family-delete-button" type="button" disabled={deleting !== null} onClick={() => deleteFeedback(item)} aria-label={`Xóa phản hồi của ${item.recipient}`}>{deleting === item.id ? 'Đang xóa…' : 'Xóa phản hồi'}</button></div></div><div className="family-response-meta"><span><strong>Người gửi:</strong> {item.sender || 'Chưa ghi tên'}</span><span><strong>Vị trí gần đúng:</strong> {item.location?.label || 'Chưa ghi nhận'}</span><span><strong>Gửi từ thư:</strong> {item.recipient}</span></div><time>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(url => <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh từ ${item.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a>)}</div></article>)}</section>
     <section id="greetings" className="family-admin-panel" hidden={active.id !== 'greetings'}><h2>{form.id ? 'Cập nhật lời chúc' : 'Thêm lời chúc theo từ khóa'}</h2><form className="family-form" onSubmit={save}>
       <label htmlFor="rule-keywords">Từ khóa nhận biết (cách nhau bằng dấu phẩy)</label><input id="rule-keywords" value={form.keywords} onChange={event => field('keywords', event.target.value)} placeholder="Ví dụ: dì Hoa, hoa" required />
       <label htmlFor="rule-recipient">Tên hiển thị</label><input id="rule-recipient" value={form.recipient} onChange={event => field('recipient', event.target.value)} placeholder="Ví dụ: Dì Hoa" />
@@ -126,7 +145,7 @@ export default function FamilyInbox() {
     <section id="images" className="family-admin-panel" hidden={active.id !== 'images'}>
       <div className="family-gallery-summary"><h2>Ảnh hiện có</h2><span>{data?.images.total ?? '—'} ảnh · {bytes(data?.images.totalBytes || 0)}</span></div>
       {data?.images.total === 0 && <div className="family-empty"><h3>Chưa có ảnh nào</h3><p>Ảnh người thân tải lên trong phản hồi sẽ được tập hợp tại đây.</p></div>}{data?.errors.images && <p role="status">{data.errors.images}</p>}
-      <div className="family-gallery">{data?.images.items.map(image => <article key={image.id}><a href={imageSource(image.url)} target="_blank" rel="noreferrer" aria-label={`Xem ảnh gốc từ ${image.recipient}`}><img src={imageSource(image.url)} alt={`Ảnh từ ${image.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a><div><h3>{image.recipient}</h3><p>{new Date(image.createdAt).toLocaleDateString('vi-VN')} · {bytes(image.size)}</p><a className="link-dashed" href={imageSource(image.url)} target="_blank" rel="noreferrer">Xem ảnh gốc ↗</a></div></article>)}</div>
+      <div className="family-gallery">{data?.images.items.map(image => <article key={image.id}><a href={imageSource(image.url)} target="_blank" rel="noreferrer" aria-label={`Xem ảnh gốc từ ${image.recipient}`}><img src={imageSource(image.url)} alt={`Ảnh từ ${image.recipient}`} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /></a><div><h3>{image.recipient}</h3><p>{new Date(image.createdAt).toLocaleDateString('vi-VN')} · {bytes(image.size)}</p><div className="family-gallery-actions"><a className="link-dashed" href={imageSource(image.url)} target="_blank" rel="noreferrer">Xem ảnh gốc ↗</a><button className="btn-dashed family-delete-button family-image-delete" type="button" disabled={deletingImage !== null} onClick={() => deleteImage(image)} aria-label={`Xóa ảnh của ${image.recipient}`}>{deletingImage === image.id ? 'Đang xóa…' : 'Xóa ảnh'}</button></div></div></article>)}</div>
     </section>
     </main></div>
 }

@@ -41,8 +41,8 @@ export default function MotherMemories({ greeting }) {
     <figure className="mother-memory-video">
       <span className="mother-memory-tape" aria-hidden="true" />
       <video controls playsInline preload="none" poster={familyAssets.motherVideoPoster} onPlay={pauseMusic} aria-label="Một đoạn video kỷ niệm dành cho mẹ">
-        <source src="/mother-memories/memory-video.mp4" type="video/mp4" />
-        Trình duyệt chưa hỗ trợ video. <a href="/mother-memories/memory-video.mp4">Mở video kỷ niệm</a>.
+        <source src={familyAssets.motherVideo} type="video/mp4" />
+        Trình duyệt chưa hỗ trợ video. <a href={familyAssets.motherVideo}>Mở video kỷ niệm</a>.
       </video>
       <figcaption>Có những khoảnh khắc, con muốn giữ mãi.</figcaption>
     </figure>

@@ -44,6 +44,34 @@ function imageUrl(image) {
   return typeof image === 'string' ? image : image?.url;
 }
 
+function imageIdentity(image) {
+  return typeof image === 'string' ? image : image?.publicId || image?.url;
+}
+
+async function destroyCloudinaryImage(publicId, cloudinary) {
+  const params = { invalidate: true, public_id: publicId, timestamp: Math.floor(Date.now() / 1000) };
+  const form = new URLSearchParams({
+    ...Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)])),
+    api_key: cloudinary.apiKey,
+    signature: signCloudinaryParams(params, cloudinary.apiSecret),
+  });
+  let response;
+  try {
+    response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudinary.cloudName)}/image/destroy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form,
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw Object.assign(new Error('Không kết nối được Cloudinary để xóa ảnh.'), { statusCode: 502 });
+  }
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !['ok', 'not found'].includes(result.result)) {
+    throw Object.assign(new Error(result.error?.message || 'Không xóa được ảnh trên Cloudinary.'), { statusCode: 502 });
+  }
+}
+
 function createApp(options = {}) {
   const app = express();
   const store = createJsonStore(options.dataDir || process.env.DATA_DIR || path.join(__dirname, '..', 'database'));
@@ -62,7 +90,7 @@ function createApp(options = {}) {
   ready.catch(error => console.error(error.message));
   app.disable('x-powered-by');
   app.set('trust proxy', process.env.TRUST_PROXY === 'true' || process.env.VERCEL ? 1 : false);
-  app.use(helmet({ contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'], 'connect-src': ["'self'", 'https://api.cloudinary.com'], 'media-src': ["'self'"] } } }));
+  app.use(helmet({ contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'], 'connect-src': ["'self'", 'https://api.cloudinary.com'], 'media-src': ["'self'", 'https://res.cloudinary.com'] } } }));
   app.use(cors({ origin(origin, callback) {
     const vercelOrigins = [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
       .filter(Boolean)
@@ -220,6 +248,16 @@ function createApp(options = {}) {
     const visits = await store.read('visits', []);
     return sendSuccess(res, { feedbackCount: feedback.filter(row => !row.deletedAt).length, visitCount: visits.length, visitors: new Set(visits.map(row => row.sessionId)).size, visits: visits.slice(-200).reverse() });
   }));
+  app.delete('/api/admin/visits/:id', authenticate, asyncHandler(async (req, res) => {
+    let found = false;
+    await store.update('visits', [], rows => {
+      const remaining = rows.filter(row => row.id !== req.params.id);
+      found = remaining.length !== rows.length;
+      return remaining;
+    });
+    if (!found) return sendError(res, 'Không tìm thấy lượt truy cập', 404);
+    return sendSuccess(res, { deleted: true });
+  }));
   app.get('/api/admin/greetings', authenticate, asyncHandler(async (req, res) => sendSuccess(res, { items: await store.read('custom-greetings', []) })));
   app.post('/api/admin/greetings', authenticate, asyncHandler(async (req, res) => {
     const { id, keywords, recipient = '', greeting, title = '', signature = '' } = req.body || {};
@@ -244,11 +282,45 @@ function createApp(options = {}) {
             if (info.isFile()) { size = info.size; createdAt = info.birthtime.toISOString(); }
           } catch (error) { if (error.code !== 'ENOENT') throw error; }
         }
-        items.push({ id: `${id}-${index}`, url, size, createdAt, recipient: response.recipient || 'Ảnh đã lưu', feedbackId: response.id });
+        items.push({ id: `${id}-${index}`, index, url, size, createdAt, recipient: response.recipient || 'Ảnh đã lưu', feedbackId: response.id });
       }
     }
     items.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
     return sendSuccess(res, { items, total: items.length, totalBytes: items.reduce((sum,item) => sum + item.size, 0) });
+  }));
+  app.delete('/api/admin/images/:feedbackId/:index', authenticate, asyncHandler(async (req, res) => {
+    const index = Number(req.params.index);
+    if (!Number.isSafeInteger(index) || index < 0) return sendError(res, 'Ảnh không hợp lệ', 400);
+    const feedback = await store.read('feedback', []);
+    const row = feedback.find(item => item.id === req.params.feedbackId);
+    const image = row?.images?.[index];
+    if (!image) return sendError(res, 'Không tìm thấy ảnh', 404);
+    const url = imageUrl(image);
+    const publicId = typeof image === 'object' ? image.publicId : null;
+    const isLocalUpload = typeof url === 'string' && url.startsWith('/uploads/');
+    if (publicId) {
+      if (!/^family-feedback\/[a-f0-9-]{36}$/i.test(publicId)) return sendError(res, 'Ảnh Cloudinary không hợp lệ', 400);
+      const cloudinary = cloudinaryConfig();
+      if (!cloudinary) return sendError(res, 'Máy chủ chưa cấu hình Cloudinary.', 503);
+      await destroyCloudinaryImage(publicId, cloudinary);
+    } else if (!isLocalUpload) {
+      return sendError(res, 'Không xác định được nơi lưu ảnh để xóa an toàn', 400);
+    }
+    const identity = imageIdentity(image);
+    let removed = false;
+    await store.update('feedback', [], rows => rows.map(item => {
+      if (item.id !== req.params.feedbackId || !Array.isArray(item.images)) return item;
+      const imageIndex = item.images.findIndex(candidate => imageIdentity(candidate) === identity);
+      if (imageIndex < 0) return item;
+      removed = true;
+      return { ...item, images: item.images.filter((_, candidateIndex) => candidateIndex !== imageIndex) };
+    }));
+    if (!removed) return sendError(res, 'Ảnh đã được thay đổi; hãy tải lại danh sách.', 409);
+    if (isLocalUpload) {
+      try { await fs.rm(path.join(uploadsDir, path.basename(url))); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    return sendSuccess(res, { deleted: true });
   }));
   app.delete('/api/admin/feedback/:id', authenticate, asyncHandler(async (req, res) => {
     let found = false;

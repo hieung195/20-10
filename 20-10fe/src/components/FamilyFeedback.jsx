@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { listFamilyFeedback, sendFamilyFeedback } from '../api/familyApi'
 
 export default function FamilyFeedback({ name, recipient }) {
+  const location = useLocation()
   const [sender, setSender] = useState('')
   const [content, setContent] = useState('')
   const [images, setImages] = useState([])
@@ -10,6 +12,7 @@ export default function FamilyFeedback({ name, recipient }) {
   const [error, setError] = useState('')
   const [listError, setListError] = useState('')
   const requestId = useRef(null)
+  const jumpedToHash = useRef('')
   const fileInput = useRef(null)
   useEffect(() => {
     let cancelled = false
@@ -18,6 +21,14 @@ export default function FamilyFeedback({ name, recipient }) {
     const timer = setInterval(load, 15000)
     return () => { cancelled = true; clearInterval(timer) }
   }, [name])
+  useEffect(() => {
+    if (!location.hash || !items.length || jumpedToHash.current === location.hash) return
+    const id = location.hash.slice(1)
+    const target = document.getElementById(id)
+    if (!target) return
+    jumpedToHash.current = location.hash
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+  }, [items, location.hash])
   async function submit(event) {
     event.preventDefault()
     if ((!content.trim() && !images.length) || status === 'sending') return
@@ -34,9 +45,8 @@ export default function FamilyFeedback({ name, recipient }) {
   const imageSource = url => url.startsWith('http') ? url : `${base}${url}`
   return <section className="family-feedback" aria-labelledby="feedback-title">
     <h2 id="feedback-title">Những lời nhắn yêu thương</h2>
-    <p>Lời nhắn và ảnh ở đây được hiển thị công khai. Tên người gửi và vị trí gần đúng chỉ admin xem được.</p>
     {listError && <p role="status">{listError}</p>}
-    {items.map(item => <article className="family-inbox-item" key={item.id}><h3>{item.recipient}</h3><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(image => { const url = typeof image === 'string' ? image : image.url; return <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh trong lời nhắn của ${item.recipient}`} loading="lazy" /></a> })}</div></article>)}
+    {items.map(item => <article className="family-inbox-item" id={`feedback-${item.id}`} key={item.id}><h3>{item.recipient}</h3><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('vi-VN')}</time><p>{item.content}</p><div className="family-feedback-images">{item.images?.map(image => { const url = typeof image === 'string' ? image : image.url; return <a key={url} href={imageSource(url)} target="_blank" rel="noreferrer"><img src={imageSource(url)} alt={`Ảnh trong lời nhắn của ${item.recipient}`} loading="lazy" /></a> })}</div></article>)}
     <form className="family-form" onSubmit={submit}>
       <label htmlFor="family-sender">Tên người gửi</label>
       <input id="family-sender" value={sender} onChange={event => { setSender(event.target.value); requestId.current = null; setStatus('') }} maxLength={80} autoComplete="name" required disabled={status === 'sending'} placeholder="Ví dụ: Hùng, chị Ngọc…" />

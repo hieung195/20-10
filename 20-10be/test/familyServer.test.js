@@ -62,6 +62,11 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   const imageDownload = await fetch(base + imageUrl);
   assert.equal(imageDownload.status, 200);
   assert.equal((await imageDownload.arrayBuffer()).byteLength, png.length + 2 * 1024 * 1024);
+  const deleteImage = await fetch(`${base}/api/admin/images/${gallery.data.items[0].feedbackId}/${gallery.data.items[0].index}`, { method: 'DELETE', headers: authHeaders });
+  assert.equal(deleteImage.status, 200);
+  assert.equal((await (await fetch(base + '/api/admin/images', { headers: authHeaders })).json()).data.total, 0);
+  assert.equal((await (await fetch(base + '/api/feedback?name=Y%E1%BA%BFn')).json()).data.items[0].images.length, 0);
+  assert.equal((await fetch(base + imageUrl)).status, 404);
   await post('/api/visits', { sessionId: 'test-session', page: '/' });
   await post('/api/visits', { sessionId: 'test-session', page: '/celebrate/me' });
   const overview = await (await fetch(base + '/api/admin/overview', { headers: authHeaders })).json();
@@ -70,6 +75,8 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   assert.equal(overview.data.feedbackCount, 2);
   assert.match(overview.data.visits[0].location.label, /nội bộ/);
   assert.equal(overview.data.visits[0].ip, '127.0.0.1');
+  assert.equal((await fetch(`${base}/api/admin/visits/${overview.data.visits[0].id}`, { method: 'DELETE', headers: authHeaders })).status, 200);
+  assert.equal((await (await fetch(base + '/api/admin/overview', { headers: authHeaders })).json()).data.visitCount, 1);
   const custom = await (await fetch(base + '/api/admin/greetings', { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: ['dì Hoa', 'Hoa'], recipient: 'Dì Hoa', greeting: 'Chúc dì Hoa bình an!', title: 'Thương dì' }) })).json();
   assert.ok(custom.data.id);
   const personal = await (await post('/api/greetings/generate', { name: 'DI HOA', audienceType: 'family' })).json();
