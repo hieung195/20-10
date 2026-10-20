@@ -10,8 +10,8 @@ function getSecret() {
   return process.env.JWT_SECRET;
 }
 
-function signToken(payload) {
-  return jwt.sign(payload, getSecret(), { expiresIn: EXPIRES_IN });
+function signToken(payload, options = {}) {
+  return jwt.sign(payload, getSecret(), { expiresIn: options.expiresIn || EXPIRES_IN });
 }
 
 function verifyToken(token) {

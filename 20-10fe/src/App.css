@@ -59,21 +59,35 @@
   margin-top: 18px;
 }
 
-/* ── Link Quản trị góc phải trên (chỉ trang chủ) ── */
+/* ── Lối tắt đăng nhập quản trị trên các trang công khai ── */
 .admin-switch {
-  position: absolute;
-  top: 18px;
-  right: 20px;
-  z-index: 5;
-  font: 16px var(--font-hand);
-  color: var(--muted);
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  z-index: 950;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fffaf2eF;
+  box-shadow: 0 3px 12px #3d2f2818;
+  font: 24px/1 var(--font-hand);
+  color: var(--ink-2);
   text-decoration: none;
-  border-bottom: 1.5px dashed var(--line);
+  transition: color .15s, border-color .15s, transform .15s;
 }
 
 .admin-switch:hover {
   color: var(--clay);
   border-color: var(--clay);
+  transform: translateY(-1px);
+}
+
+.admin-switch:focus-visible {
+  outline: 3px solid var(--clay);
+  outline-offset: 3px;
 }
 
 /* ── Nút nhạc: pill mực, đĩa quay khi phát ── */

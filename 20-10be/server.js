@@ -48,6 +48,23 @@ function imageIdentity(image) {
   return typeof image === 'string' ? image : image?.publicId || image?.url;
 }
 
+function cloudinaryImagePublicId(url, cloudinary) {
+  if (typeof url !== 'string' || !cloudinary) return null;
+  let parsed;
+  try { parsed = new URL(url); } catch { return null; }
+  if (parsed.origin !== 'https://res.cloudinary.com') return null;
+  const marker = `/${cloudinary.cloudName}/image/upload/`;
+  const markerIndex = parsed.pathname.indexOf(marker);
+  if (markerIndex < 0) return null;
+  let segments;
+  try { segments = parsed.pathname.slice(markerIndex + marker.length).split('/').map(decodeURIComponent); }
+  catch { return null; }
+  const folderIndex = segments.indexOf('family-feedback');
+  if (folderIndex < 0 || folderIndex !== segments.length - 2) return null;
+  const filename = segments.at(-1).match(/^([a-f0-9-]{36})\.(?:avif|gif|jpe?g|png|webp)$/i);
+  return filename ? `family-feedback/${filename[1]}` : null;
+}
+
 async function destroyCloudinaryImage(publicId, cloudinary) {
   const params = { invalidate: true, public_id: publicId, timestamp: Math.floor(Date.now() / 1000) };
   const form = new URLSearchParams({
@@ -162,11 +179,11 @@ function createApp(options = {}) {
   const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20 });
   app.post('/api/auth/admin/login', loginLimiter, asyncHandler(async (req, res) => {
     await ready;
-    const { username, password } = req.body || {};
+    const { username, password, rememberDevice = false } = req.body || {};
     if (typeof username !== 'string' || typeof password !== 'string' || password.length > 200) return sendError(res, 'Thông tin đăng nhập không hợp lệ', 400);
     const admin = (await store.read('admins', [])).find(item => item.username === username.trim());
     if (!admin || !await bcrypt.compare(password, admin.passwordHash)) return sendError(res, 'Sai tên đăng nhập hoặc mật khẩu', 401);
-    return sendSuccess(res, { token: signToken({ sub: admin.id, typ: 'admin' }) });
+    return sendSuccess(res, { token: signToken({ sub: admin.id, typ: 'admin' }, rememberDevice === true ? { expiresIn: '30d' } : {}) });
   }));
   const authenticate = asyncHandler(async (req, res, next) => {
     await ready;
@@ -371,11 +388,12 @@ function createApp(options = {}) {
     const image = row?.images?.[index];
     if (!image) return sendError(res, 'Không tìm thấy ảnh', 404);
     const url = imageUrl(image);
-    const publicId = typeof image === 'object' ? image.publicId : null;
+    let publicId = typeof image === 'object' ? image.publicId : null;
     const isLocalUpload = typeof url === 'string' && url.startsWith('/uploads/');
+    const cloudinary = cloudinaryConfig();
+    if (!publicId || !/^family-feedback\/[a-f0-9-]{36}$/i.test(publicId)) publicId = cloudinaryImagePublicId(url, cloudinary) || publicId;
     if (publicId) {
       if (!/^family-feedback\/[a-f0-9-]{36}$/i.test(publicId)) return sendError(res, 'Ảnh Cloudinary không hợp lệ', 400);
-      const cloudinary = cloudinaryConfig();
       if (!cloudinary) return sendError(res, 'Máy chủ chưa cấu hình Cloudinary.', 503);
       await destroyCloudinaryImage(publicId, cloudinary);
     } else if (!isLocalUpload) {

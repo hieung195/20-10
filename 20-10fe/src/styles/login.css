@@ -58,6 +58,29 @@
   line-height: 32px;
 }
 
+.admin-login__card .admin-login__remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  color: var(--ink-2);
+  font: 15px/1.4 var(--font-body);
+  cursor: pointer;
+}
+
+.admin-login__remember input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--clay);
+  flex: 0 0 auto;
+}
+
+.admin-login__remember small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .admin-login__card .btn-primary {
   margin-top: 18px;
   min-height: 48px;

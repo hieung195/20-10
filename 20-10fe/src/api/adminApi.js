@@ -1,8 +1,13 @@
 const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 const tokenKey = 'gift_admin_token'
 export const adminAuth = {
-  getToken: () => sessionStorage.getItem(tokenKey),
-  setToken: token => { localStorage.removeItem(tokenKey); sessionStorage.setItem(tokenKey, token) },
+  getToken: () => localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey),
+  setToken: (token, rememberDevice = false) => {
+    sessionStorage.removeItem(tokenKey)
+    localStorage.removeItem(tokenKey)
+    const storage = rememberDevice ? localStorage : sessionStorage
+    storage.setItem(tokenKey, token)
+  },
   clear: () => { sessionStorage.removeItem(tokenKey); localStorage.removeItem(tokenKey) },
 }
 async function request(path, body) {
@@ -21,6 +26,6 @@ async function request(path, body) {
   return payload.data
 }
 export const adminApi = {
-  login: (username, password) => request('/api/auth/admin/login', { username, password }),
+  login: (username, password, rememberDevice = false) => request('/api/auth/admin/login', { username, password, rememberDevice }),
   verifySession: () => request('/api/auth/admin/me'),
 }

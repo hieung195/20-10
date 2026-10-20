@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { Link, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import ProtectedAdminRoute from './components/ProtectedAdminRoute'
 import VisitTracker from './components/VisitTracker'
 import MusicPlayer from './components/MusicPlayer'
@@ -30,8 +30,14 @@ function PublicAccessGate({ children }) {
   return children
 }
 
+function AdminShortcut() {
+  const { pathname } = useLocation()
+  if (pathname === '/login' || pathname.startsWith('/admin')) return null
+  return <Link className="admin-switch" to="/login" aria-label="Đăng nhập quản trị" title="Đăng nhập quản trị">#</Link>
+}
+
 export default function App() {
-  return <PublicAccessGate><><VisitTracker /><MusicPlayer /><Suspense fallback={<div className="app-route-loading" role="status">Đang tải...</div>}><Routes>
+  return <PublicAccessGate><><VisitTracker /><AdminShortcut /><MusicPlayer /><Suspense fallback={<div className="app-route-loading" role="status">Đang tải...</div>}><Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/celebrate/:name" element={<CelebrationPage />} />
     <Route path="/login" element={<LoginPage />} />

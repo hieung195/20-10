@@ -11,6 +11,9 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   process.env.ADMIN_USERNAME = 'admin';
   process.env.ADMIN_PASSWORD = '1';
   process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
+  process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud';
+  process.env.CLOUDINARY_API_KEY = 'test-key';
+  process.env.CLOUDINARY_API_SECRET = 'test-secret';
   const app = require('../server');
   assert.ok(!Object.keys(require.cache).some(file => file.endsWith('/config/db.js')));
   const server = app.listen(0, '127.0.0.1');
@@ -32,6 +35,10 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   assert.equal(rows[0].content, payload.content);
   const login = await (await post('/api/auth/admin/login', { username: 'admin', password: '1' })).json();
   assert.ok(login.data.token);
+  const rememberedLogin = await (await post('/api/auth/admin/login', { username: 'admin', password: '1', rememberDevice: true })).json();
+  const { verifyToken } = require('../utils/jwt');
+  const rememberedClaims = verifyToken(rememberedLogin.data.token);
+  assert.ok(rememberedClaims.exp - rememberedClaims.iat > 29 * 24 * 60 * 60);
   const inbox = await (await fetch(base + '/api/admin/feedback', { headers: { Authorization: `Bearer ${login.data.token}` } })).json();
   assert.equal(inbox.data.total, 1);
   assert.equal(inbox.data.items[0].content, payload.content);
@@ -67,12 +74,30 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   assert.equal((await (await fetch(base + '/api/admin/images', { headers: authHeaders })).json()).data.total, 0);
   assert.equal((await (await fetch(base + '/api/feedback?name=Y%E1%BA%BFn')).json()).data.items[0].images.length, 0);
   assert.equal((await fetch(base + imageUrl)).status, 404);
+  const legacyFeedbackId = crypto.randomUUID();
+  const legacyImagePublicId = `family-feedback/${crypto.randomUUID()}`;
+  const legacyImageUrl = `https://res.cloudinary.com/test-cloud/image/upload/v1792500000/${legacyImagePublicId}.jpg`;
+  const storedFeedback = JSON.parse(fs.readFileSync(path.join(dir, 'feedback.json'), 'utf8'));
+  storedFeedback.push({ id: legacyFeedbackId, recipient: 'Mẹ', sender: 'Hiếu', content: 'Ảnh cũ', images: [{ url: legacyImageUrl }], createdAt: new Date().toISOString() });
+  fs.writeFileSync(path.join(dir, 'feedback.json'), JSON.stringify(storedFeedback));
+  const legacyGallery = await (await fetch(base + '/api/admin/images', { headers: authHeaders })).json();
+  const legacyImage = legacyGallery.data.items.find(item => item.feedbackId === legacyFeedbackId);
+  assert.equal(legacyImage.url, legacyImageUrl);
+  const realFetch = global.fetch;
+  global.fetch = async (input, init) => String(input).includes('/image/destroy')
+    ? new Response(JSON.stringify({ result: 'ok' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    : realFetch(input, init);
+  try {
+    const legacyDelete = await fetch(`${base}/api/admin/images/${legacyFeedbackId}/${legacyImage.index}`, { method: 'DELETE', headers: authHeaders });
+    assert.equal(legacyDelete.status, 200);
+    assert.equal((await (await fetch(base + '/api/admin/images', { headers: authHeaders })).json()).data.items.some(item => item.feedbackId === legacyFeedbackId), false);
+  } finally { global.fetch = realFetch; }
   await post('/api/visits', { sessionId: 'test-session', page: '/' });
   await post('/api/visits', { sessionId: 'test-session', page: '/celebrate/me' });
   const overview = await (await fetch(base + '/api/admin/overview', { headers: authHeaders })).json();
   assert.equal(overview.data.visitCount, 2);
   assert.equal(overview.data.visitors, 1);
-  assert.equal(overview.data.feedbackCount, 2);
+  assert.equal(overview.data.feedbackCount, 3);
   assert.match(overview.data.visits[0].location.label, /nội bộ/);
   assert.equal(overview.data.visits[0].ip, '127.0.0.1');
   assert.equal((await fetch(`${base}/api/admin/visits/${overview.data.visits[0].id}`, { method: 'DELETE', headers: authHeaders })).status, 200);
@@ -90,9 +115,9 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   const afterDelete = await (await fetch(base + '/api/feedback?name=ngoc')).json();
   assert.equal(afterDelete.data.total, 0);
   const adminAfterDelete = await (await fetch(base + '/api/admin/feedback', { headers: authHeaders })).json();
-  assert.equal(adminAfterDelete.data.total, 1);
+  assert.equal(adminAfterDelete.data.total, 2);
   const overviewAfterDelete = await (await fetch(base + '/api/admin/overview', { headers: authHeaders })).json();
-  assert.equal(overviewAfterDelete.data.feedbackCount, 1);
+  assert.equal(overviewAfterDelete.data.feedbackCount, 2);
   assert.equal((await post('/api/admin/blocked-ips', { ip: 'not-an-ip' })).status, 401);
   assert.equal((await fetch(base + '/api/admin/blocked-ips', { headers: authHeaders })).status, 200);
   assert.equal((await fetch(base + '/api/admin/blocked-ips', { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: 'not-an-ip' }) })).status, 400);
@@ -107,5 +132,5 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   assert.equal((await fetch(base + '/api/access')).status, 200);
   assert.equal((await post('/api/visits', { sessionId: 'unblocked-session', page: '/' })).status, 200);
   const { createJsonStore } = require('../services/jsonStore');
-  assert.equal((await createJsonStore(dir).read('feedback', [])).length, 2);
+  assert.equal((await createJsonStore(dir).read('feedback', [])).length, 3);
 });

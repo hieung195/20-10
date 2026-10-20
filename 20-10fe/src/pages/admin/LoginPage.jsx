@@ -9,6 +9,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ username: '', password: '' })
+  const [rememberDevice, setRememberDevice] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -19,8 +20,8 @@ function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const { token } = await adminApi.login(form.username.trim(), form.password)
-      adminAuth.setToken(token)
+      const { token } = await adminApi.login(form.username.trim(), form.password, rememberDevice)
+      adminAuth.setToken(token, rememberDevice)
       navigate(location.state?.from || '/admin', { replace: true })
     } catch (err) {
       setError(err.status === 401 ? 'Sai tên đăng nhập hoặc mật khẩu' : err.message)
@@ -47,6 +48,10 @@ function LoginPage() {
           Mật khẩu
           <input id="admin-password" className="input-hand" type="password" autoComplete="current-password" required value={form.password}
             onChange={(event) => setForm({ ...form, password: event.target.value })} />
+        </label>
+        <label className="admin-login__remember">
+          <input type="checkbox" checked={rememberDevice} onChange={(event) => setRememberDevice(event.target.checked)} />
+          <span>Nhớ thiết bị này <small>· giữ đăng nhập trong 30 ngày</small></span>
         </label>
         {error && <p className="admin-alert error">{error}</p>}
         <button type="submit" className="btn-primary" disabled={loading}>
