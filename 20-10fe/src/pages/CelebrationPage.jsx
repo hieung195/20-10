@@ -5,6 +5,7 @@ import FamilyFeedback from '../components/FamilyFeedback'
 import MotherMemories from '../components/MotherMemories'
 import Petals from '../components/paper/Petals'
 import Stamp from '../components/paper/Stamp'
+import { familyAssets } from '../lib/familyAssets'
 import { getFamilyGreeting } from '../lib/familyGreetings'
 import '../styles/celebration.css'
 import '../styles/family.css'
@@ -28,7 +29,7 @@ export default function CelebrationPage() {
     <article className="postcard family-postcard">
       <span className="tape tape--center" aria-hidden="true" />
       <div className="letter-florals" aria-hidden="true">
-        {[1, 2, 3, 4, 5].map(number => <img key={number} className={`letter-floral letter-floral--${number}`} src={`/letter-flowers/bouquet-${number}.png`} alt="" draggable="false" decoding="async" />)}
+        {familyAssets.letterFlowers.map((url, index) => <img key={url} className={`letter-floral letter-floral--${index + 1}`} src={url} alt="" draggable="false" decoding="async" />)}
       </div>
       <div className="letter-content">
       <header className="postcard__head">

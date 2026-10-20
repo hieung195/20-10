@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
 import { pauseMusic } from '../lib/music'
+import { familyAssets } from '../lib/familyAssets'
 import '../styles/mother-memories.css'
 
 const memories = [
@@ -17,10 +18,11 @@ function PhotoGroup({ start }) {
   return <div className="mother-memory-group" aria-label="Những tấm ảnh kỷ niệm của mẹ">
     {memories.slice(start, start + 3).map((caption, index) => {
       const number = start + index + 1
+      const image = familyAssets.motherMemories[number - 1]
       return <figure className={`mother-memory mother-memory--${index + 1}`} key={number}>
         <span className="mother-memory-tape" aria-hidden="true" />
-        <a href={`/mother-memories/memory-${number}.jpg`} target="_blank" rel="noreferrer" aria-label={`Xem ảnh lớn: ${caption}`}>
-          <img src={`/mother-memories/memory-${number}.jpg`} alt={caption} loading="lazy" decoding="async" />
+        <a href={image} target="_blank" rel="noreferrer" aria-label={`Xem ảnh lớn: ${caption}`}>
+          <img src={image} alt={caption} loading="lazy" decoding="async" />
         </a>
         <figcaption>{caption}</figcaption>
       </figure>
@@ -38,7 +40,7 @@ export default function MotherMemories({ greeting }) {
     </Fragment>)}
     <figure className="mother-memory-video">
       <span className="mother-memory-tape" aria-hidden="true" />
-      <video controls playsInline preload="none" poster="/mother-memories/video-poster.jpg" onPlay={pauseMusic} aria-label="Một đoạn video kỷ niệm dành cho mẹ">
+      <video controls playsInline preload="none" poster={familyAssets.motherVideoPoster} onPlay={pauseMusic} aria-label="Một đoạn video kỷ niệm dành cho mẹ">
         <source src="/mother-memories/memory-video.mp4" type="video/mp4" />
         Trình duyệt chưa hỗ trợ video. <a href="/mother-memories/memory-video.mp4">Mở video kỷ niệm</a>.
       </video>

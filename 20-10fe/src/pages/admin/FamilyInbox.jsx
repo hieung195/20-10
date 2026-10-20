@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { adminAuth } from '../../api/adminApi'
+import { familyAssets } from '../../lib/familyAssets'
 import '../../styles/celebration.css'
 import '../../styles/family.css'
 import '../../styles/family-admin.css'
@@ -95,7 +96,7 @@ export default function FamilyInbox() {
   const field = (key, value) => setForm(current => ({ ...current, [key]: value }))
   return <div className="family-admin-shell page-paper">
     <aside className={`family-sidebar${menuOpen ? ' is-open' : ''}`}>
-      <Link className="family-sidebar-brand" to="/admin"><img src="/family-heart.svg" alt="" /><span>Thư nhà<small>GÓC QUẢN TRỊ</small></span></Link>
+      <Link className="family-sidebar-brand" to="/admin"><img src={familyAssets.brand} alt="" /><span>Thư nhà<small>GÓC QUẢN TRỊ</small></span></Link>
       <button className="family-sidebar-toggle" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? 'Đóng menu' : 'Mở menu'}</button>
       <nav id="admin-navigation" aria-label="Quản trị gia đình">{tabs.map(tab => <Link key={tab.id} to={`/admin?tab=${tab.id}`} aria-current={active.id === tab.id ? 'page' : undefined} onClick={() => { setMenuOpen(false); window.scrollTo(0, 0) }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={tab.icon} /></svg>{tab.label}{tab.id === 'responses' && data && <span>{data.feedback.total}</span>}{tab.id === 'images' && data && <span>{data.images.total}</span>}</Link>)}</nav>
       <div className="family-sidebar-bottom"><p>Một mái nhà.<br />Thật nhiều yêu thương.</p><Link to="/">← Xem trang gia đình</Link><button onClick={() => { adminAuth.clear(); window.location.assign('/login') }}>Đăng xuất</button></div>

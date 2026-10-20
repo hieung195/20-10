@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { adminApi, adminAuth } from '../../api/adminApi'
 import Petals from '../../components/paper/Petals'
+import { familyAssets } from '../../lib/familyAssets'
 import '../../styles/login.css'
 
 function LoginPage() {
@@ -33,7 +34,7 @@ function LoginPage() {
       <Petals count={2} />
       <form className="admin-login__card letter-paper" onSubmit={submit}>
         <div className="admin-login__brand">
-          <img src="/family-heart.svg" alt="" />
+          <img src={familyAssets.brand} alt="" />
           <span>THƯ NHÀ</span>
         </div>
         <h1>Đăng nhập quản trị</h1>

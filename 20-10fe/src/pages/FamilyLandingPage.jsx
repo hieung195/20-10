@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Petals from '../components/paper/Petals'
 import Stamp from '../components/paper/Stamp'
+import { familyAssets } from '../lib/familyAssets'
 import '../styles/family.css'
 
 export default function FamilyLandingPage() {
@@ -22,7 +23,7 @@ export default function FamilyLandingPage() {
         { file: 'ngay-vui', caption: 'Giữ lại những ngày vui', alt: 'Gia đình cùng nhau trong ngày cưới' },
       ].map((photo, index) => <figure className={`family-memory family-memory--${index + 1}`} key={photo.file}>
         <span className="family-memory__tape" aria-hidden="true" />
-        <a href={`/family-photos/${photo.file}.jpg`} target="_blank" rel="noreferrer" aria-label={`Xem ảnh: ${photo.caption}`}><img src={`/family-photos/${photo.file}.jpg`} alt={photo.alt} width="1400" height={index === 0 ? '810' : index === 1 ? '1050' : '933'} decoding="async" /></a>
+        <a href={familyAssets.familyPhotos[photo.file]} target="_blank" rel="noreferrer" aria-label={`Xem ảnh: ${photo.caption}`}><img src={familyAssets.familyPhotos[photo.file]} alt={photo.alt} width="1400" height={index === 0 ? '810' : index === 1 ? '1050' : '933'} decoding="async" /></a>
         <figcaption>{photo.caption}</figcaption>
       </figure>)}
     </div>
