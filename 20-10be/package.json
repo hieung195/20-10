@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node --test test/familyGreetings.test.js test/jsonStore.test.js test/familyServer.test.js"
+    "test": "node --test test/familyGreetings.test.js test/jsonStore.test.js test/familyServer.test.js test/clientIp.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

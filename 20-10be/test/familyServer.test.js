@@ -69,6 +69,7 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   assert.equal(overview.data.visitors, 1);
   assert.equal(overview.data.feedbackCount, 2);
   assert.match(overview.data.visits[0].location.label, /nội bộ/);
+  assert.equal(overview.data.visits[0].ip, '127.0.0.1');
   const custom = await (await fetch(base + '/api/admin/greetings', { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: ['dì Hoa', 'Hoa'], recipient: 'Dì Hoa', greeting: 'Chúc dì Hoa bình an!', title: 'Thương dì' }) })).json();
   assert.ok(custom.data.id);
   const personal = await (await post('/api/greetings/generate', { name: 'DI HOA', audienceType: 'family' })).json();

@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const fs = require('node:fs/promises');
 const { locate } = require('./services/visitLocation');
+const { resolveClientIp } = require('./services/clientIp');
 require('dotenv').config();
 const { createJsonStore } = require('./services/jsonStore');
 const { signToken, verifyToken } = require('./utils/jwt');
@@ -184,7 +185,7 @@ function createApp(options = {}) {
         const bytes = Number(image.bytes);
         images.push({ url: parsedUrl.href, publicId: image.publicId, bytes: Number.isFinite(bytes) && bytes >= 0 ? bytes : 0, format, createdAt: new Date().toISOString() });
       }
-      const location = await locate(req.ip);
+      const location = await locate(resolveClientIp(req));
       let saved;
       let inserted = false;
       await store.update('feedback', [], rows => {
@@ -209,8 +210,9 @@ function createApp(options = {}) {
   app.post('/api/visits', asyncHandler(async (req, res) => {
     const { sessionId, page } = req.body || {};
     if (typeof sessionId !== 'string' || sessionId.length > 100 || typeof page !== 'string' || !page.startsWith('/') || page.length > 500) return sendError(res, 'Thông tin truy cập không hợp lệ', 400);
-    const location = await locate(req.ip);
-    await store.update('visits', [], rows => [...rows, { id: crypto.randomUUID(), sessionId, page, location, createdAt: new Date().toISOString() }]);
+    const ip = resolveClientIp(req);
+    const location = await locate(ip);
+    await store.update('visits', [], rows => [...rows, { id: crypto.randomUUID(), sessionId, page, ip, location, createdAt: new Date().toISOString() }]);
     return sendSuccess(res, { recorded: true });
   }));
   app.get('/api/admin/overview', authenticate, asyncHandler(async (req, res) => {
