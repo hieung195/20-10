@@ -4,6 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "20-10fe/dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
