@@ -153,10 +153,10 @@ function createApp(options = {}) {
     const files = req.files || [];
     let savedFiles = false;
     try {
-      const { name, content = '', requestId } = req.body || {};
+      const { name, sender = '', content = '', requestId } = req.body || {};
       const submittedImages = req.body.images === undefined ? [] : req.body.images;
       const cloudinary = cloudinaryConfig();
-      if (typeof name !== 'string' || !name.trim() || name.length > 100 || typeof content !== 'string' || (!content.trim() && !files.length && (!Array.isArray(submittedImages) || !submittedImages.length)) || content.length > 2000 || typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/i.test(requestId)) return sendError(res, 'Nhập lời nhắn hoặc chọn ảnh để gửi.', 400);
+      if (typeof name !== 'string' || !name.trim() || name.length > 100 || typeof sender !== 'string' || sender.length > 80 || typeof content !== 'string' || (!content.trim() && !files.length && (!Array.isArray(submittedImages) || !submittedImages.length)) || content.length > 2000 || typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/i.test(requestId)) return sendError(res, 'Kiểm tra tên người gửi, lời nhắn hoặc ảnh đính kèm.', 400);
       if (!Array.isArray(submittedImages)) return sendError(res, 'Danh sách ảnh không hợp lệ.', 400);
       const greeting = await greet(name.trim());
       const images = [];
@@ -184,13 +184,14 @@ function createApp(options = {}) {
         const bytes = Number(image.bytes);
         images.push({ url: parsedUrl.href, publicId: image.publicId, bytes: Number.isFinite(bytes) && bytes >= 0 ? bytes : 0, format, createdAt: new Date().toISOString() });
       }
+      const location = await locate(req.ip);
       let saved;
       let inserted = false;
       await store.update('feedback', [], rows => {
         saved = rows.find(row => row.id === requestId);
         if (saved) return rows;
         inserted = true;
-        saved = { id: requestId, name: name.trim(), recipient: greeting.recipient, content: content.trim(), images, createdAt: new Date().toISOString() };
+        saved = { id: requestId, name: name.trim(), sender: sender.trim(), recipient: greeting.recipient, content: content.trim(), images, location, createdAt: new Date().toISOString() };
         return [...rows, saved];
       });
       savedFiles = inserted;

@@ -4,3 +4,4 @@
 @media(prefers-reduced-motion:reduce){.family-sidebar nav>a{transition:none}}
 
 .family-response-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.family-delete-button{color:#9b382b;border-color:#b9796e;min-height:44px}.family-delete-button:disabled{opacity:.5;cursor:wait}
+.family-response-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin:10px 0;color:var(--muted);font-size:14px}.family-response-meta strong{color:var(--ink-2)}

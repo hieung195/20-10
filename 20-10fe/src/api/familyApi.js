@@ -17,18 +17,19 @@ async function uploadToCloudinary(file) {
   return { url: result.secure_url, publicId: result.public_id, bytes: result.bytes, format: result.format }
 }
 
-export async function sendFamilyFeedback({ name, content, requestId, files = [] }) {
-  if (!files.length) return (await api.post('/api/feedback', { name, content, requestId, images: [] })).data.data
+export async function sendFamilyFeedback({ name, sender, content, requestId, files = [] }) {
+  if (!files.length) return (await api.post('/api/feedback', { name, sender, content, requestId, images: [] })).data.data
 
   const { mode } = (await api.get('/api/uploads/config')).data.data
   if (mode === 'unavailable') throw new Error('Máy chủ chưa cấu hình Cloudinary để nhận ảnh.')
   if (mode === 'cloudinary') {
     const images = await Promise.all(files.map(uploadToCloudinary))
-    return (await api.post('/api/feedback', { name, content, requestId, images })).data.data
+    return (await api.post('/api/feedback', { name, sender, content, requestId, images })).data.data
   }
 
   const data = new FormData()
   data.append('name', name)
+  data.append('sender', sender)
   data.append('content', content)
   data.append('requestId', requestId)
   files.forEach(file => data.append('images', file))
