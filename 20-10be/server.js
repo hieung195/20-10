@@ -270,7 +270,7 @@ function createApp(options = {}) {
     const target = (await greet(req.query.name)).recipient;
     const rows = await store.read('feedback', []);
     const { normalizeFamilyName } = await import('../shared/familyGreetings.mjs');
-    const items = rows.filter(row => !row.deletedAt && normalizeFamilyName(row.recipient) === normalizeFamilyName(target)).map(({ id, recipient, content, images = [], createdAt }) => ({ id, recipient, content, images: images.map(imageUrl).filter(Boolean), createdAt })).reverse();
+    const items = rows.filter(row => !row.deletedAt && normalizeFamilyName(row.recipient) === normalizeFamilyName(target)).map(({ id, sender = '', recipient, content, images = [], createdAt }) => ({ id, sender, recipient, content, images: images.map(imageUrl).filter(Boolean), createdAt })).reverse();
     return sendSuccess(res, { items, total: items.length });
   }));
   app.post('/api/visits', asyncHandler(async (req, res) => {

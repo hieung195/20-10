@@ -12,3 +12,47 @@
 @media(prefers-reduced-motion:reduce){.family-memory{transition:none}.family-memory:hover{transform:none}}
 .family-feedback .family-inbox-item[id^="feedback-"]{scroll-margin-top:32px}
 .family-feedback .family-feedback__time{display:block;margin-top:14px;text-align:right;color:var(--muted);font-size:14px}
+
+/* Keep letters and public replies comfortable from narrow phones to wide screens. */
+.family-postcard{min-width:0;max-width:100%}
+.family-letter__body,.family-feedback,.family-inbox-item{min-width:0;max-width:100%}
+.family-feedback .family-inbox-item{padding:20px 0 4px}
+.family-feedback .family-inbox-item h3{margin:0 0 12px;color:var(--clay);font:26px/1.35 var(--font-hand);overflow-wrap:anywhere}
+.family-feedback .family-inbox-item p{margin:0;overflow-wrap:anywhere}
+.family-feedback-images{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));align-items:start}
+.family-feedback-images img{display:block;max-width:100%;height:auto}
+.family-home--memories .family-envelope,.family-home--memories .family-intro{min-width:0}
+@media(max-width:900px){
+  .family-home{grid-template-columns:minmax(0,1fr);justify-items:center;gap:32px;padding-inline:clamp(20px,5vw,48px)}
+  .family-home:not(.family-home--memories)>.family-intro,.family-home:not(.family-home--memories)>.family-envelope{width:min(100%,680px)}
+  .family-home--memories{grid-template-columns:minmax(0,1fr);gap:32px}
+  .family-home--memories>.family-intro,.family-home--memories>.family-envelope{width:min(100%,680px)}
+}
+@media(max-width:760px){
+  .family-letter{padding:24px 12px 76px}
+  .family-postcard{padding:clamp(20px,6vw,28px) clamp(18px,5.5vw,22px)}
+  .family-postcard .postcard__name{font-size:clamp(36px,10vw,54px);overflow-wrap:anywhere}
+  .family-letter__body{font-size:clamp(18px,4.8vw,21px);line-height:1.72}
+  .family-letter--mother .family-letter__body p:first-child{font-size:clamp(21px,6vw,26px)}
+  .family-feedback{margin-top:26px;padding-top:20px}
+  .family-feedback h2{font-size:clamp(23px,7vw,28px);line-height:1.25}
+  .family-feedback .family-inbox-item{margin-top:20px;padding-top:16px}
+  .family-feedback .family-inbox-item h3{font-size:clamp(21px,6vw,25px)}
+  .family-feedback .family-inbox-item p{font-size:clamp(17px,4.8vw,20px);line-height:1.65}
+  .family-feedback-images{grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:8px}
+  .family-feedback-images img{max-height:280px}
+  .family-feedback .family-feedback__time{font-size:13px}
+  .family-form input[type=file]{font-size:14px}
+}
+@media(max-width:420px){
+  .family-home{padding-inline:16px}
+  .family-home--memories{padding:24px 16px 76px}
+  .family-memory-wall{gap:7px}
+  .family-memory figcaption{font-size:11px}
+  .family-letter{padding-inline:10px}
+  .family-postcard{padding:20px 16px}
+  .family-letter__body{font-size:18px}
+  .family-feedback .family-inbox-item{padding-top:14px}
+  .family-feedback-images{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .family-form button{width:100%;min-height:48px}
+}

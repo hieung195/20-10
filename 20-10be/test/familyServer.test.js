@@ -42,7 +42,7 @@ test('JSON API: đăng nhập, gửi, chống trùng, bảo vệ hộp thư và 
   assert.equal(publicThread.data.items[0].recipient, 'chị Ngọc');
   assert.equal(publicThread.data.items[0].content, payload.content);
   assert.equal(publicThread.data.items[0].name, undefined);
-  assert.equal(publicThread.data.items[0].sender, undefined);
+  assert.equal(publicThread.data.items[0].sender, 'Hiếu');
   assert.equal(publicThread.data.items[0].location, undefined);
   const upload = new FormData();
   upload.append('name', 'mẹ'); upload.append('content', 'Ảnh của mẹ'); upload.append('requestId', crypto.randomUUID());
